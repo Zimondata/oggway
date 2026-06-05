@@ -81,6 +81,28 @@ export const FACTUALITY_RULE = [
   '  RIGHT: Before naming any specific service, WebSearch "<service> Russia 2026 blocked throttled" or "best <category> for <country> <year>". Cite source inline. If sources confirm the service is broken in that context - recommend an alternative and explain why. The 5-second WebSearch saved a 5-day rewrite.',
 ].join('\n');
 
+// Durable-facts CAPTURE root rule - applies to ALL agent runs, lives in code
+// so it survives reinstall and does NOT depend on in-context discipline.
+// The agent repeatedly reconstructs bookings/flights/dates/document numbers
+// from memory instead of re-checking the saved fact, producing confident
+// fabrications. A memory note alone proved insufficient; this rule forces the
+// fact into a structured file (memory/facts.md) the moment the user shares it.
+// RECALL is already handled by the Level 2 retrieval-router, which greps the
+// whole memory/ folder (including facts.md) for keywords each turn - so this
+// rule only needs to guarantee the CAPTURE half.
+export const FACTS_CAPTURE_RULE = [
+  '## Durable facts = capture immediately - root rule',
+  '',
+  'When the user shares a DURABLE FACT, you MUST `memory_save` it to `memory/facts.md` in the SAME turn, before anything else. Durable facts include: bookings, flights, reservation/confirmation codes, dates/deadlines, document numbers, addresses, where-something-lives (which account, which file, which drawer), and stable person/project facts.',
+  '',
+  'Write it as one atomic fact per line in EXACTLY this format:',
+  '`- [tags: t1, t2, t3] <the fact in one line>`',
+  '',
+  'Tag with the words the user will later use to ASK about it (route, flight, booking, the city name, the project name, the person), so the retrieval router surfaces it next time. The router greps memory/ each turn - but only if the line is in this file and tagged.',
+  '',
+  'Such facts are VERIFIABLE claims, not opinions. Never reconstruct a booking / flight / date / code / address from memory - re-read `memory/facts.md` (tool first) before stating it. "I remember that..." about a durable fact is a fabrication waiting to happen. If it is not in facts.md, you do not know it - go find it, do not guess.',
+].join('\n');
+
 // Commitment-mechanism root rule - applies to ALL agent runs, lives in code
 // so it survives reinstall and does NOT depend on in-context discipline.
 // The agent repeatedly "promises in chat" (сделаю / приду с / напомню) without
@@ -202,6 +224,7 @@ function loadAutoModules(groupDir: string, userMessage: string): string[] {
  *   5. CAPABILITY_DISCOVERY (skipped on background runs)
  *   6. FACTUALITY_RULE      (always)
  *   7. COMMITMENT_MECHANISM_RULE (always)
+ *   8. FACTS_CAPTURE_RULE   (always)
  *
  * Sections are joined with two newlines.
  */
@@ -219,5 +242,6 @@ export function buildAppendedSystemPrompt(parts: SystemPromptParts): string {
   }
   sections.push(FACTUALITY_RULE);
   sections.push(COMMITMENT_MECHANISM_RULE);
+  sections.push(FACTS_CAPTURE_RULE);
   return sections.join('\n\n');
 }

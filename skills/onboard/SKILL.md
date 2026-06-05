@@ -169,6 +169,7 @@ This file is the first thing the agent reads. It just points to the shared and p
 4. How you reach them: `groups/<name>/channel.md`
 5. Long-term memory: `groups/<name>/MEMORY.md` (curated, only in main session)
 6. Daily logs: `groups/<name>/memory/<YYYY-MM-DD>.md` (append-only)
+7. Durable facts: `groups/<name>/memory/facts.md` (bookings, flights, dates, document numbers - one tagged line each; capture the moment the user shares one, never reconstruct from memory; see FACTS_CAPTURE_RULE)
 
 Read in this order on first message of every session. Stop loading once context covers the user's question.
 ```
