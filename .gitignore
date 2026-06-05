@@ -1,0 +1,20 @@
+node_modules/
+dist/
+agent/runner/dist/
+store/
+data/
+groups/
+logs/
+.env
+.env.*
+!.env.example
+
+# Installable extensions (per-instance, not checked in)
+extensions/
+
+# Brainstorm sessions
+.superpowers/
+
+# Desktop app (separate repo, lives here for co-location)
+agent-drive/
+klik/

@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claudeclaw.dev/schemas/extension-manifest.schema.json",
+  "title": "ClaudeClaw Extension Manifest",
+  "description": "Schema for extensions/claudeclaw-*/manifest.json. Mirrors the contract enforced by validateManifest() in src/orchestrator/extension-manifest.ts. Only the four fields the loader actually checks are required; additionalProperties is allowed so extensions may carry custom fields.",
+  "type": "object",
+  "required": ["name", "version", "type", "entry"],
+  "additionalProperties": true,
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string" },
+    "type": { "enum": ["channel", "extension"] },
+    "entry": { "type": "string", "minLength": 1 },
+    "dependencies": { "type": "object" },
+    "provides": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "channel": { "type": "string" },
+        "dbSchema": { "type": "boolean" },
+        "envKeys": { "type": "array", "items": { "type": "string" } },
+        "containerEnvKeys": { "type": "array", "items": { "type": "string" } },
+        "allowedDomains": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "agents": { "type": "array", "items": { "type": "string" } },
+    "agentSkills": { "type": "array", "items": { "type": "string" } },
+    "commands": { "type": "array", "items": { "type": "string" } },
+    "hooks": { "type": "object" },
+    "requires": { "type": "array", "items": { "type": "string" } }
+  }
+}

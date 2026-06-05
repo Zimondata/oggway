@@ -1,0 +1,1 @@
+npm run lint:manifests && npm run lint:paths
