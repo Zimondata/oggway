@@ -34,7 +34,10 @@ registerExtension({
           filesTouched: payload.filesTouched,
         });
       } catch (err) {
-        logger.error({ err, sourceGroup, name: payload.name }, 'skill_save failed');
+        logger.error(
+          { err, sourceGroup, name: payload.name },
+          'skill_save failed',
+        );
       }
     },
   },
@@ -202,11 +205,17 @@ export interface SaveSkillResult {
 export function saveSkill(input: SaveSkillInput): SaveSkillResult {
   const normalizedName = normalizeName(input.name);
   if (!normalizedName) {
-    throw new Error('Skill name must contain at least one alphanumeric character');
+    throw new Error(
+      'Skill name must contain at least one alphanumeric character',
+    );
   }
   const problemPrefix = input.problem.slice(0, 200);
   const filesTouched = input.filesTouched?.join(', ');
-  const existing = findDuplicate(input.groupFolder, normalizedName, problemPrefix);
+  const existing = findDuplicate(
+    input.groupFolder,
+    normalizedName,
+    problemPrefix,
+  );
 
   const db = getDb();
   const now = new Date().toISOString();
@@ -237,7 +246,11 @@ export function saveSkill(input: SaveSkillInput): SaveSkillResult {
     const updated = mapRow(updatedRow);
     writeSkillFile(updated);
     logger.info(
-      { groupFolder: input.groupFolder, name: normalizedName, version: updated.version },
+      {
+        groupFolder: input.groupFolder,
+        name: normalizedName,
+        version: updated.version,
+      },
       'Skill merged into existing entry',
     );
     return { merged: true, skill: updated };
@@ -298,7 +311,8 @@ export function searchSkills(
 
   const scored = rows
     .map((row) => {
-      const text = `${row.name} ${row.problem} ${row.approach} ${row.gotchas ?? ''}`.toLowerCase();
+      const text =
+        `${row.name} ${row.problem} ${row.approach} ${row.gotchas ?? ''}`.toLowerCase();
       const matchCount = queryTerms.filter((t) => text.includes(t)).length;
       const score = matchCount + (row.utility_score || 1) * 0.1;
       return { row, score, matchCount };
@@ -322,9 +336,9 @@ export function listSkills(groupFolder: string): SkillRecord[] {
 
 export function getSkillById(id: string): SkillRecord | null {
   const db = getDb();
-  const row = db
-    .prepare(`SELECT * FROM skills WHERE id = ?`)
-    .get(id) as SkillRow | undefined;
+  const row = db.prepare(`SELECT * FROM skills WHERE id = ?`).get(id) as
+    | SkillRow
+    | undefined;
   return row ? mapRow(row) : null;
 }
 
@@ -341,18 +355,28 @@ export function recordSkillUsage(
   ).run(skillId, groupFolder, outcome, new Date().toISOString());
 
   if (outcome === 'success') {
-    db.prepare(`UPDATE skills SET success_count = success_count + 1 WHERE id = ?`).run(skillId);
+    db.prepare(
+      `UPDATE skills SET success_count = success_count + 1 WHERE id = ?`,
+    ).run(skillId);
   } else {
-    db.prepare(`UPDATE skills SET failure_count = failure_count + 1 WHERE id = ?`).run(skillId);
+    db.prepare(
+      `UPDATE skills SET failure_count = failure_count + 1 WHERE id = ?`,
+    ).run(skillId);
   }
 
   const row = db
     .prepare(`SELECT success_count, failure_count FROM skills WHERE id = ?`)
-    .get(skillId) as { success_count: number; failure_count: number } | undefined;
+    .get(skillId) as
+    | { success_count: number; failure_count: number }
+    | undefined;
   if (!row) return;
 
-  const utility = 1 + Math.log(row.success_count + 1) - 2 * Math.log(row.failure_count + 1);
-  db.prepare(`UPDATE skills SET utility_score = ? WHERE id = ?`).run(utility, skillId);
+  const utility =
+    1 + Math.log(row.success_count + 1) - 2 * Math.log(row.failure_count + 1);
+  db.prepare(`UPDATE skills SET utility_score = ? WHERE id = ?`).run(
+    utility,
+    skillId,
+  );
 }
 
 export function formatSkillsForContext(skills: SkillRecord[]): string {

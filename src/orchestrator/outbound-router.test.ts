@@ -66,7 +66,10 @@ describe('MessageRouter', () => {
     const slack = mockChannel('slack', 'C');
     const router = createMessageRouter([slack]);
 
-    router.addPreHook(async () => ({ action: 'drop' as const, reason: 'blocked' }));
+    router.addPreHook(async () => ({
+      action: 'drop' as const,
+      reason: 'blocked',
+    }));
 
     await router.route({
       chatJid: 'C123',

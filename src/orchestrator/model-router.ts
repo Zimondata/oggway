@@ -13,7 +13,10 @@
 
 import { logger } from './logger.js';
 import { classifyPromptComplexity } from './llm-classifier.js';
-import { getAvailableTier, type ModelTier as AvailTier } from './rate-limit-probe.js';
+import {
+  getAvailableTier,
+  type ModelTier as AvailTier,
+} from './rate-limit-probe.js';
 
 export type ModelTier = 'light' | 'medium' | 'heavy';
 
@@ -38,36 +41,102 @@ const TIER_MODELS: Record<ModelTier, string> = {
 // matches or (?:^|\s) anchors instead.
 
 const HEAVY_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /напиши код|write code|\bimplement\b|\brefactor\b|\bdebug\b|fix bug|\bPR\b|pull request/i, reason: 'coding task' },
-  { pattern: /проанализируй|deep analysis|\baudit\b|ревью|\breview\b|\bcompare\b|сравни/i, reason: 'deep analysis' },
-  { pattern: /\broadmap\b|\bstrategy\b|стратегия|архитектура|\barchitecture\b/i, reason: 'planning/architecture' },
-  { pattern: /напиши пост|напиши текст|write .{0,20}text|\bpost\b|статья|\barticle\b|tone of voice/i, reason: 'content creation' },
-  { pattern: /исследуй|\bresearch\b|ресерч|find.*github|найди.*решение|сделай research/i, reason: 'research task' },
-  { pattern: /лезь.*инет|лезь.*интернет|ищи.*в интернете|посмотри что.*на рынке|что есть на рынке|кто.*уже.*сделал|кто.*это.*делал|посмотри.*люди.*сделали|собрать инфу|собери инфу|инфа.*по теме/i, reason: 'web research' },
-  { pattern: /сделай.*решение|пиздат|\bambitious\b|\bcomplex\b/i, reason: 'complex task' },
-  { pattern: /\bGarmin\b|\bgarmin\b|гармин|browser_navigate|\bplaywright\b/i, reason: 'browser automation' },
+  {
+    pattern:
+      /напиши код|write code|\bimplement\b|\brefactor\b|\bdebug\b|fix bug|\bPR\b|pull request/i,
+    reason: 'coding task',
+  },
+  {
+    pattern:
+      /проанализируй|deep analysis|\baudit\b|ревью|\breview\b|\bcompare\b|сравни/i,
+    reason: 'deep analysis',
+  },
+  {
+    pattern: /\broadmap\b|\bstrategy\b|стратегия|архитектура|\barchitecture\b/i,
+    reason: 'planning/architecture',
+  },
+  {
+    pattern:
+      /напиши пост|напиши текст|write .{0,20}text|\bpost\b|статья|\barticle\b|tone of voice/i,
+    reason: 'content creation',
+  },
+  {
+    pattern:
+      /исследуй|\bresearch\b|ресерч|find.*github|найди.*решение|сделай research/i,
+    reason: 'research task',
+  },
+  {
+    pattern:
+      /лезь.*инет|лезь.*интернет|ищи.*в интернете|посмотри что.*на рынке|что есть на рынке|кто.*уже.*сделал|кто.*это.*делал|посмотри.*люди.*сделали|собрать инфу|собери инфу|инфа.*по теме/i,
+    reason: 'web research',
+  },
+  {
+    pattern: /сделай.*решение|пиздат|\bambitious\b|\bcomplex\b/i,
+    reason: 'complex task',
+  },
+  {
+    pattern: /\bGarmin\b|\bgarmin\b|гармин|browser_navigate|\bplaywright\b/i,
+    reason: 'browser automation',
+  },
   { pattern: /viral.*scout|content.*scout/i, reason: 'content scout' },
-  { pattern: /план разработки|план проекта|разработай план|спланируй|развёрнут|разбери подробно|подробный разбор/i, reason: 'planning task' },
+  {
+    pattern:
+      /план разработки|план проекта|разработай план|спланируй|развёрнут|разбери подробно|подробный разбор/i,
+    reason: 'planning task',
+  },
 ];
 
 const LIGHT_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /бэкап|\bbackup\b|\brsync\b|\bcopy\b|скопируй/i, reason: 'backup task' },
-  { pattern: /^\[?(HEARTBEAT|DREAM|REFLECT|COST-WATCH)/i, reason: 'system task' },
-  { pattern: /напомни.*спать|sleep reminder|лечь спать|напомни лечь/i, reason: 'sleep reminder' },
+  {
+    pattern: /бэкап|\bbackup\b|\brsync\b|\bcopy\b|скопируй/i,
+    reason: 'backup task',
+  },
+  {
+    pattern: /^\[?(HEARTBEAT|DREAM|REFLECT|COST-WATCH)/i,
+    reason: 'system task',
+  },
+  {
+    pattern: /напомни.*спать|sleep reminder|лечь спать|напомни лечь/i,
+    reason: 'sleep reminder',
+  },
   { pattern: /HEARTBEAT_OK/, reason: 'heartbeat noop' },
-  { pattern: /^(привет|hi|hello|ку|здарова|yo)\s*[.!?]*$/i, reason: 'greeting' },
-  { pattern: /^(ок|ok|лан|ладно|понял|ясно|спасибо|thanks)\s*[.!?]*$/i, reason: 'acknowledgment' },
-  { pattern: /который час|\bwhat time\b|\btime is it\b|дата|\bdate today\b/i, reason: 'time/date query' },
+  {
+    pattern: /^(привет|hi|hello|ку|здарова|yo)\s*[.!?]*$/i,
+    reason: 'greeting',
+  },
+  {
+    pattern: /^(ок|ok|лан|ладно|понял|ясно|спасибо|thanks)\s*[.!?]*$/i,
+    reason: 'acknowledgment',
+  },
+  {
+    pattern: /который час|\bwhat time\b|\btime is it\b|дата|\bdate today\b/i,
+    reason: 'time/date query',
+  },
   { pattern: /переведи|\btranslate\b|перевод/i, reason: 'translation' },
   { pattern: /напомни Жене|напомни.*завтра/i, reason: 'simple reminder' },
 ];
 
 const MEDIUM_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\bwellbeing\b|check-in|чекин|как спал|как день|самочувствие/i, reason: 'wellbeing check-in' },
-  { pattern: /посчитай|\bcalculate\b|калории|КБЖУ|\bnutrition\b|еда/i, reason: 'nutrition/calculation' },
-  { pattern: /что нового|новости|\bnews\b|\bupdate\b/i, reason: 'news/updates' },
-  { pattern: /объясни|\bexplain\b|расскажи|\bwhat is\b|что такое|как работает/i, reason: 'explanation' },
-  { pattern: /найди|\bsearch\b|поиск|загугли|websearch/i, reason: 'search task' },
+  {
+    pattern: /\bwellbeing\b|check-in|чекин|как спал|как день|самочувствие/i,
+    reason: 'wellbeing check-in',
+  },
+  {
+    pattern: /посчитай|\bcalculate\b|калории|КБЖУ|\bnutrition\b|еда/i,
+    reason: 'nutrition/calculation',
+  },
+  {
+    pattern: /что нового|новости|\bnews\b|\bupdate\b/i,
+    reason: 'news/updates',
+  },
+  {
+    pattern: /объясни|\bexplain\b|расскажи|\bwhat is\b|что такое|как работает/i,
+    reason: 'explanation',
+  },
+  {
+    pattern: /найди|\bsearch\b|поиск|загугли|websearch/i,
+    reason: 'search task',
+  },
 ];
 
 /**
@@ -91,7 +160,11 @@ export function routeModel(
 
   // System task prefixes always get light tier regardless of content
   if (/^\[?(HEARTBEAT|DREAM|REFLECT|COST-WATCH)/i.test(prompt)) {
-    return { tier: 'light', model: TIER_MODELS.light, reason: 'system task prefix' };
+    return {
+      tier: 'light',
+      model: TIER_MODELS.light,
+      reason: 'system task prefix',
+    };
   }
 
   // Check heavy patterns first (we don't want to accidentally downgrade)

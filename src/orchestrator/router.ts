@@ -14,10 +14,7 @@ export function escapeXml(s: string): string {
 // Using full escapeXml would produce ugly &quot; in chat history visible to the agent.
 export function escapeXmlContent(s: string): string {
   if (!s) return '';
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 const MAX_MESSAGE_CHARS = 20000;
@@ -29,7 +26,15 @@ function truncateContent(content: string): string {
   return `${kept}\n\n[... truncated ${dropped} chars to fit context ...]`;
 }
 
-function renderMsgLine(m: { sender_name: string; content: string; timestamp: string; is_from_me?: boolean }, timezone: string): string {
+function renderMsgLine(
+  m: {
+    sender_name: string;
+    content: string;
+    timestamp: string;
+    is_from_me?: boolean;
+  },
+  timezone: string,
+): string {
   const displayTime = formatLocalTime(m.timestamp, timezone);
   const content = truncateContent(m.content);
   const sender = m.is_from_me ? 'GLaDOS' : m.sender_name;
@@ -39,7 +44,12 @@ function renderMsgLine(m: { sender_name: string; content: string; timestamp: str
 export function formatMessages(
   messages: NewMessage[],
   timezone: string,
-  history?: Array<{ sender_name: string; content: string; timestamp: string; is_from_me?: boolean }>,
+  history?: Array<{
+    sender_name: string;
+    content: string;
+    timestamp: string;
+    is_from_me?: boolean;
+  }>,
 ): string {
   const newLines = messages.map((m) => renderMsgLine(m, timezone));
   const header = `<context timezone="${escapeXml(timezone)}" />\n`;

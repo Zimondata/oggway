@@ -89,7 +89,9 @@ export async function dispatchWakeEvent(
     setTimeout(() => {
       try {
         deps.queue.closeStdin(queueKey);
-      } catch { /* queue may be empty */ }
+      } catch {
+        /* queue may be empty */
+      }
     }, TASK_CLOSE_DELAY_MS);
   };
 
@@ -151,21 +153,43 @@ export async function dispatchWakeEvent(
   const timeoutHandle = setTimeout(() => {
     timedOut = true;
     logger.warn(
-      { event: `${event.source}.${event.eventType}`, timeoutMs: WAKE_DEFAULTS.timeoutMs },
+      {
+        event: `${event.source}.${event.eventType}`,
+        timeoutMs: WAKE_DEFAULTS.timeoutMs,
+      },
       'Wake event timeout — closing and killing sandbox',
     );
-    try { deps.queue.closeStdin(queueKey); } catch { /* ignore */ }
+    try {
+      deps.queue.closeStdin(queueKey);
+    } catch {
+      /* ignore */
+    }
     setTimeout(() => {
       if (activeProc && !activeProc.killed) {
-        try { activeProc.kill('SIGKILL'); } catch { /* already gone */ }
+        try {
+          activeProc.kill('SIGKILL');
+        } catch {
+          /* already gone */
+        }
       }
     }, 5_000);
   }, WAKE_DEFAULTS.timeoutMs);
 
   try {
-    const output = runtime === 'sandbox'
-      ? await runSandboxAgent(groupForRun, agentInput, onProcessCb, onStreamed)
-      : await runContainerAgent(groupForRun, agentInput, onProcessCb, onStreamed);
+    const output =
+      runtime === 'sandbox'
+        ? await runSandboxAgent(
+            groupForRun,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          )
+        : await runContainerAgent(
+            groupForRun,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          );
     if (output.status === 'error') {
       error = error ?? output.error ?? 'Unknown error';
     } else if (output.result) {

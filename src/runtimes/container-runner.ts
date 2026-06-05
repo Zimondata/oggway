@@ -19,7 +19,10 @@ import {
   IDLE_TIMEOUT,
   TIMEZONE,
 } from '../orchestrator/config.js';
-import { resolveGroupFolderPath, resolveGroupIpcPath } from '../orchestrator/group-folder.js';
+import {
+  resolveGroupFolderPath,
+  resolveGroupIpcPath,
+} from '../orchestrator/group-folder.js';
 import { logger } from '../orchestrator/logger.js';
 import {
   CONTAINER_HOST_GATEWAY,
@@ -209,12 +212,7 @@ function buildVolumeMounts(
   // Copy agent-runner source into a per-group writable location so agents
   // can customize it (add tools, change behavior) without affecting other
   // groups. Recompiled on container startup via entrypoint.sh.
-  const agentRunnerSrc = path.join(
-    projectRoot,
-    'agent',
-    'runner',
-    'src',
-  );
+  const agentRunnerSrc = path.join(projectRoot, 'agent', 'runner', 'src');
   const groupAgentRunnerDir = path.join(
     DATA_DIR,
     'sessions',
@@ -272,7 +270,12 @@ function buildContainerArgs(
 
   // Pass extension env vars to container: code-registered (registerExtension)
   // and manifest-declared (provides.envKeys, for prompt-only extensions).
-  const pluginEnvKeys = [...new Set([...getExtensionContainerEnvKeys(), ...getExtensionDeclaredEnvKeys()])];
+  const pluginEnvKeys = [
+    ...new Set([
+      ...getExtensionContainerEnvKeys(),
+      ...getExtensionDeclaredEnvKeys(),
+    ]),
+  ];
   if (pluginEnvKeys.length > 0) {
     const pluginEnv = readEnvFile(pluginEnvKeys);
     for (const key of pluginEnvKeys) {

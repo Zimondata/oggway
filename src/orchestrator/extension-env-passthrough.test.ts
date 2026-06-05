@@ -26,7 +26,10 @@ let tmpExtensionsDir: string;
 function writeManifest(dirName: string, manifest: unknown): void {
   const extDir = path.join(tmpExtensionsDir, dirName);
   fs.mkdirSync(extDir, { recursive: true });
-  fs.writeFileSync(path.join(extDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(
+    path.join(extDir, 'manifest.json'),
+    JSON.stringify(manifest, null, 2),
+  );
 }
 
 beforeAll(() => {
@@ -55,7 +58,11 @@ describe('extension manifest env passthrough', () => {
 
   it('preserves the env var value when the runner builds its filtered env', () => {
     // Mirror the safeEnvKeys -> filteredEnv construction in sandbox-runner.ts.
-    const safeEnvKeys = ['PATH', 'HOME', ...getExtensionDeclaredEnvKeys(tmpExtensionsDir)];
+    const safeEnvKeys = [
+      'PATH',
+      'HOME',
+      ...getExtensionDeclaredEnvKeys(tmpExtensionsDir),
+    ];
     const filteredEnv: Record<string, string> = {};
     for (const key of safeEnvKeys) {
       if (process.env[key]) filteredEnv[key] = process.env[key]!;
@@ -65,7 +72,9 @@ describe('extension manifest env passthrough', () => {
   });
 
   it('does NOT pass through env vars when the manifest omits them (gating is real)', () => {
-    const negativeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cclaw-envpass-neg-'));
+    const negativeDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'cclaw-envpass-neg-'),
+    );
     try {
       const extDir = path.join(negativeDir, 'claudeclaw-test-noenv');
       fs.mkdirSync(extDir, { recursive: true });

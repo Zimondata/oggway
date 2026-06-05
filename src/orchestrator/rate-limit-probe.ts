@@ -82,7 +82,11 @@ async function probeTier(_tier: ModelTier): Promise<TierStatus> {
   // always report tier as available. Real failures will surface via the
   // SDK's actual call result and the existing consecutiveFailures + auth
   // retry mechanisms.
-  return { available: true, checkedAt: Date.now(), reason: 'probe-disabled (false-positive on api.anthropic.com)' };
+  return {
+    available: true,
+    checkedAt: Date.now(),
+    reason: 'probe-disabled (false-positive on api.anthropic.com)',
+  };
 }
 
 async function ensureFresh(tier: ModelTier): Promise<TierStatus> {
@@ -118,9 +122,11 @@ export async function getAvailableTier(prefer: ModelTier): Promise<{
   allRateLimited?: boolean;
 }> {
   const order: ModelTier[] =
-    prefer === 'opus' ? ['opus', 'sonnet']
-    : prefer === 'sonnet' ? ['sonnet']
-    : ['sonnet']; // even if someone passes 'haiku', upgrade to sonnet
+    prefer === 'opus'
+      ? ['opus', 'sonnet']
+      : prefer === 'sonnet'
+        ? ['sonnet']
+        : ['sonnet']; // even if someone passes 'haiku', upgrade to sonnet
 
   for (const tier of order) {
     const status = await ensureFresh(tier);

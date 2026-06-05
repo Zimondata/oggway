@@ -1,14 +1,22 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { logger } from '../orchestrator/logger.js';
-import type { MessageIngestion, RegisteredGroup } from '../orchestrator/types.js';
-import { dispatchWakeEvent, wakeQueueKey } from '../orchestrator/wake-dispatcher.js';
+import type {
+  MessageIngestion,
+  RegisteredGroup,
+} from '../orchestrator/types.js';
+import {
+  dispatchWakeEvent,
+  wakeQueueKey,
+} from '../orchestrator/wake-dispatcher.js';
 import type { WakeDispatchDeps } from '../orchestrator/wake-dispatcher.js';
 import type { WakeEvent } from '../orchestrator/wake-events.js';
 
 export interface WebhookDeps {
   ingestion: MessageIngestion;
-  findGroupByFolder: (folder: string) => { jid: string; name: string } | undefined;
+  findGroupByFolder: (
+    folder: string,
+  ) => { jid: string; name: string } | undefined;
   /** Optional — when present, /webhook/<group>/wake is enabled. */
   wakeDeps?: WakeDispatchDeps & {
     findGroup: (folder: string) => RegisteredGroup | undefined;
@@ -33,7 +41,11 @@ function checkRateLimit(groupFolder: string): boolean {
   return true;
 }
 
-export function verifySignature(secret: string, payload: string, signature: string): boolean {
+export function verifySignature(
+  secret: string,
+  payload: string,
+  signature: string,
+): boolean {
   const expected = crypto
     .createHmac('sha256', secret)
     .update(payload)
@@ -51,13 +63,19 @@ export function verifySignature(secret: string, payload: string, signature: stri
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (chunk: string) => { data += chunk; });
+    req.on('data', (chunk: string) => {
+      data += chunk;
+    });
     req.on('end', () => resolve(data));
     req.on('error', reject);
   });
 }
 
-function sendJson(res: ServerResponse, status: number, body: Record<string, unknown>): void {
+function sendJson(
+  res: ServerResponse,
+  status: number,
+  body: Record<string, unknown>,
+): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
 }
@@ -151,10 +169,7 @@ export function startWebhookServer(
         dispatchWakeEvent(fullGroup, wakeEvent, wakeDeps),
       );
 
-      logger.info(
-        { groupFolder, source, eventType },
-        'Wake event accepted',
-      );
+      logger.info({ groupFolder, source, eventType }, 'Wake event accepted');
       sendJson(res, 202, { status: 'accepted', tag: `${source}.${eventType}` });
       return;
     }

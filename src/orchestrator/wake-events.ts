@@ -12,10 +12,10 @@
  */
 
 export interface WakeEvent {
-  source: string;       // 'garmin', 'github', 'crypto', ...
-  eventType: string;    // 'hrv-anomaly', 'ci-failed', 'price-cross', ...
+  source: string; // 'garmin', 'github', 'crypto', ...
+  eventType: string; // 'hrv-anomaly', 'ci-failed', 'price-cross', ...
   payload: Record<string, unknown>;
-  receivedAt: string;   // ISO timestamp
+  receivedAt: string; // ISO timestamp
 }
 
 export type WakeHandler = (event: WakeEvent) => string;

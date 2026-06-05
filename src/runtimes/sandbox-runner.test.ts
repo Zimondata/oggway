@@ -118,15 +118,23 @@ describe('buildSandboxSettings', () => {
   });
 
   it('merges extra allowed domains with base domains', () => {
-    const settings = buildSandboxSettings([], ['api.github.com', '*.github.com']);
+    const settings = buildSandboxSettings(
+      [],
+      ['api.github.com', '*.github.com'],
+    );
     expect(settings.network.allowedDomains).toContain('api.anthropic.com');
     expect(settings.network.allowedDomains).toContain('api.github.com');
     expect(settings.network.allowedDomains).toContain('*.github.com');
   });
 
   it('deduplicates domains', () => {
-    const settings = buildSandboxSettings([], ['api.anthropic.com', 'api.github.com']);
-    const count = settings.network.allowedDomains.filter(d => d === 'api.anthropic.com').length;
+    const settings = buildSandboxSettings(
+      [],
+      ['api.anthropic.com', 'api.github.com'],
+    );
+    const count = settings.network.allowedDomains.filter(
+      (d) => d === 'api.anthropic.com',
+    ).length;
     expect(count).toBe(1);
   });
 
@@ -151,11 +159,19 @@ describe('buildSandboxSettings', () => {
 
   it('deduplicates extra write paths against mount-derived allowWrite', () => {
     const settings = buildSandboxSettings(
-      [{ hostPath: '/host/group', containerPath: '/workspace/group', readonly: false }],
+      [
+        {
+          hostPath: '/host/group',
+          containerPath: '/workspace/group',
+          readonly: false,
+        },
+      ],
       [],
       ['/host/group', '/Users/pine/backups'],
     );
-    const count = settings.filesystem.allowWrite.filter((p) => p === '/host/group').length;
+    const count = settings.filesystem.allowWrite.filter(
+      (p) => p === '/host/group',
+    ).length;
     expect(count).toBe(1);
     expect(settings.filesystem.allowWrite).toContain('/Users/pine/backups');
   });
@@ -195,8 +211,6 @@ describe('buildSandboxArgs', () => {
     expect(args).toContain('/tmp/settings.json');
     expect(args).toContain('--');
     expect(args).toContain('node');
-    expect(args[args.length - 1]).toMatch(
-      /agent\/runner\/dist\/index\.js$/,
-    );
+    expect(args[args.length - 1]).toMatch(/agent\/runner\/dist\/index\.js$/);
   });
 });

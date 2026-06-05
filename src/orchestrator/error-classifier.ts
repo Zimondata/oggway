@@ -9,16 +9,16 @@
  */
 
 export type ErrorCategory =
-  | 'auth'           // 401 - bad credentials
-  | 'billing'        // 402 - payment required
-  | 'not-found'      // 404 - session/resource gone
-  | 'oversize'       // 413 - payload too large
-  | 'rate-limit'     // 429 - too many requests
-  | 'server-error'   // 500/502/503 - transient server issues
-  | 'overloaded'     // 529 - API overloaded
-  | 'network'        // ECONNREFUSED, ETIMEDOUT, etc.
+  | 'auth' // 401 - bad credentials
+  | 'billing' // 402 - payment required
+  | 'not-found' // 404 - session/resource gone
+  | 'oversize' // 413 - payload too large
+  | 'rate-limit' // 429 - too many requests
+  | 'server-error' // 500/502/503 - transient server issues
+  | 'overloaded' // 529 - API overloaded
+  | 'network' // ECONNREFUSED, ETIMEDOUT, etc.
   | 'context-overflow' // context window exceeded
-  | 'timeout'        // process killed / watchdog
+  | 'timeout' // process killed / watchdog
   | 'unknown';
 
 export interface ClassifiedError {
@@ -38,9 +38,12 @@ const AUTH_RE = /401|authentication_error|invalid.*credentials|unauthorized/i;
 const BILLING_RE = /402|payment.*required|billing|insufficient.*credits/i;
 const NOT_FOUND_RE = /404|not.?found|no.*conversation/i;
 const OVERSIZE_RE = /413|too.?large|payload.*size|request.*entity/i;
-const CONTEXT_OVERFLOW_RE = /context.*(?:window|length)|max.*tokens.*exceeded|prompt.*too.*long/i;
-const NETWORK_RE = /ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EPIPE|socket hang up|fetch failed|network/i;
-const SERVER_RE = /50[023]|bad gateway|service unavailable|internal server error/i;
+const CONTEXT_OVERFLOW_RE =
+  /context.*(?:window|length)|max.*tokens.*exceeded|prompt.*too.*long/i;
+const NETWORK_RE =
+  /ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EPIPE|socket hang up|fetch failed|network/i;
+const SERVER_RE =
+  /50[023]|bad gateway|service unavailable|internal server error/i;
 
 function extractHttpStatus(msg: string): number | null {
   const m = msg.match(HTTP_STATUS_RE);
@@ -72,51 +75,111 @@ export function classifyError(err: unknown): ClassifiedError {
 
   // Auth errors - not retryable (handled separately by auth-retry in runAgent)
   if (status === 401 || AUTH_RE.test(msg)) {
-    return { category: 'auth', retryable: false, sessionCorrupted: false, retryDelayMs: 0, message: msg };
+    return {
+      category: 'auth',
+      retryable: false,
+      sessionCorrupted: false,
+      retryDelayMs: 0,
+      message: msg,
+    };
   }
 
   // Billing - not retryable
   if (status === 402 || BILLING_RE.test(msg)) {
-    return { category: 'billing', retryable: false, sessionCorrupted: false, retryDelayMs: 0, message: msg };
+    return {
+      category: 'billing',
+      retryable: false,
+      sessionCorrupted: false,
+      retryDelayMs: 0,
+      message: msg,
+    };
   }
 
   // Context overflow - not retryable, session is corrupted (partial writes)
   if (CONTEXT_OVERFLOW_RE.test(msg)) {
-    return { category: 'context-overflow', retryable: false, sessionCorrupted: true, retryDelayMs: 0, message: msg };
+    return {
+      category: 'context-overflow',
+      retryable: false,
+      sessionCorrupted: true,
+      retryDelayMs: 0,
+      message: msg,
+    };
   }
 
   // Oversize payload - not retryable, session corrupted
   if (status === 413 || OVERSIZE_RE.test(msg)) {
-    return { category: 'oversize', retryable: false, sessionCorrupted: true, retryDelayMs: 0, message: msg };
+    return {
+      category: 'oversize',
+      retryable: false,
+      sessionCorrupted: true,
+      retryDelayMs: 0,
+      message: msg,
+    };
   }
 
   // Not found (session gone) - not retryable, session corrupted
   if (status === 404 || NOT_FOUND_RE.test(msg)) {
-    return { category: 'not-found', retryable: false, sessionCorrupted: true, retryDelayMs: 0, message: msg };
+    return {
+      category: 'not-found',
+      retryable: false,
+      sessionCorrupted: true,
+      retryDelayMs: 0,
+      message: msg,
+    };
   }
 
   // Rate limit - retryable with longer delay, session is FINE
   if (status === 429 || RATE_LIMIT_RE.test(msg)) {
-    return { category: 'rate-limit', retryable: true, sessionCorrupted: false, retryDelayMs: 15_000, message: msg };
+    return {
+      category: 'rate-limit',
+      retryable: true,
+      sessionCorrupted: false,
+      retryDelayMs: 15_000,
+      message: msg,
+    };
   }
 
   // API overloaded (529) - retryable, session fine
   if (status === 529 || OVERLOADED_RE.test(msg)) {
-    return { category: 'overloaded', retryable: true, sessionCorrupted: false, retryDelayMs: 10_000, message: msg };
+    return {
+      category: 'overloaded',
+      retryable: true,
+      sessionCorrupted: false,
+      retryDelayMs: 10_000,
+      message: msg,
+    };
   }
 
   // Server errors (500/502/503) - retryable, session fine
   if ((status && status >= 500 && status < 600) || SERVER_RE.test(msg)) {
-    return { category: 'server-error', retryable: true, sessionCorrupted: false, retryDelayMs: 5_000, message: msg };
+    return {
+      category: 'server-error',
+      retryable: true,
+      sessionCorrupted: false,
+      retryDelayMs: 5_000,
+      message: msg,
+    };
   }
 
   // Network errors - retryable, session fine (never reached server)
   if (NETWORK_RE.test(msg)) {
-    return { category: 'network', retryable: true, sessionCorrupted: false, retryDelayMs: 5_000, message: msg };
+    return {
+      category: 'network',
+      retryable: true,
+      sessionCorrupted: false,
+      retryDelayMs: 5_000,
+      message: msg,
+    };
   }
 
   // Unknown - conservative: not retryable, session may be corrupted
-  return { category: 'unknown', retryable: false, sessionCorrupted: true, retryDelayMs: 0, message: msg };
+  return {
+    category: 'unknown',
+    retryable: false,
+    sessionCorrupted: true,
+    retryDelayMs: 0,
+    message: msg,
+  };
 }
 
 /**
@@ -133,7 +196,9 @@ export async function withRetry<T>(
     /** Check result and return an error string if it should be retried */
     shouldRetryResult?: (result: T) => string | null;
   } = {},
-): Promise<{ result: T; attempts: number } | { error: ClassifiedError; attempts: number }> {
+): Promise<
+  { result: T; attempts: number } | { error: ClassifiedError; attempts: number }
+> {
   const maxAttempts = opts.maxAttempts ?? 3;
   const baseDelayMs = opts.baseDelayMs ?? 5_000;
   const maxDelayMs = opts.maxDelayMs ?? 120_000;
@@ -148,7 +213,11 @@ export async function withRetry<T>(
         if (errMsg && attempt < maxAttempts) {
           const classified = classifyError(errMsg);
           if (classified.retryable) {
-            const delay = jitteredDelay(classified.retryDelayMs || baseDelayMs, attempt, maxDelayMs);
+            const delay = jitteredDelay(
+              classified.retryDelayMs || baseDelayMs,
+              attempt,
+              maxDelayMs,
+            );
             opts.onRetry?.(classified, attempt);
             await sleep(delay);
             continue;
@@ -166,14 +235,21 @@ export async function withRetry<T>(
         return { error: classified, attempts: attempt };
       }
 
-      const delay = jitteredDelay(classified.retryDelayMs || baseDelayMs, attempt, maxDelayMs);
+      const delay = jitteredDelay(
+        classified.retryDelayMs || baseDelayMs,
+        attempt,
+        maxDelayMs,
+      );
       opts.onRetry?.(classified, attempt);
       await sleep(delay);
     }
   }
 
   // Should never reach here, but TypeScript needs it
-  return { error: classifyError('max retries exhausted'), attempts: maxAttempts };
+  return {
+    error: classifyError('max retries exhausted'),
+    attempts: maxAttempts,
+  };
 }
 
 function jitteredDelay(baseMs: number, attempt: number, maxMs: number): number {

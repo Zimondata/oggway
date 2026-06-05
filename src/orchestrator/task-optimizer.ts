@@ -67,8 +67,18 @@ export function evaluateTask(taskId: string): OptimizationResult {
 
   // Get task metadata
   const task = db
-    .prepare(`SELECT id, schedule_type, schedule_value, model, prompt FROM scheduled_tasks WHERE id = ?`)
-    .get(taskId) as { id: string; schedule_type: string; schedule_value: string; model: string | null; prompt: string } | undefined;
+    .prepare(
+      `SELECT id, schedule_type, schedule_value, model, prompt FROM scheduled_tasks WHERE id = ?`,
+    )
+    .get(taskId) as
+    | {
+        id: string;
+        schedule_type: string;
+        schedule_value: string;
+        model: string | null;
+        prompt: string;
+      }
+    | undefined;
 
   if (!task) return out;
 
@@ -79,32 +89,37 @@ export function evaluateTask(taskId: string): OptimizationResult {
   if (silentRatio >= SILENT_RATIO_THRESHOLD) {
     out.recommendations.push(
       `[silent-ratio] ${Math.round(silentRatio * 100)}% of last ${runs.length} runs were silent. ` +
-      `Consider reducing frequency or merging with another task.`,
+        `Consider reducing frequency or merging with another task.`,
     );
   }
 
   // --- Rule 2: Model overkill ---
   const currentModel = (task.model || 'sonnet').toLowerCase();
-  const isExpensiveModel = currentModel.includes('opus') || currentModel.includes('sonnet');
+  const isExpensiveModel =
+    currentModel.includes('opus') || currentModel.includes('sonnet');
 
   if (isExpensiveModel && silentRatio > 0.5) {
     // Most runs are silent - definitely doesn't need an expensive model
     const newModel = 'haiku';
-    db.prepare(`UPDATE scheduled_tasks SET model = ? WHERE id = ?`).run(newModel, taskId);
+    db.prepare(`UPDATE scheduled_tasks SET model = ? WHERE id = ?`).run(
+      newModel,
+      taskId,
+    );
     out.actions.push(
       `[model-downgrade] Auto-downgraded ${taskId} from ${currentModel} to ${newModel} ` +
-      `(${Math.round(silentRatio * 100)}% silent runs)`,
+        `(${Math.round(silentRatio * 100)}% silent runs)`,
     );
   } else if (isExpensiveModel) {
     // Check if outputs are consistently short (trivial work)
     const nonSilentRuns = runs.filter((r) => !isSilent(r.result));
     if (nonSilentRuns.length > 0) {
       const avgLen =
-        nonSilentRuns.reduce((sum, r) => sum + (r.result?.length || 0), 0) / nonSilentRuns.length;
+        nonSilentRuns.reduce((sum, r) => sum + (r.result?.length || 0), 0) /
+        nonSilentRuns.length;
       if (avgLen < SHORT_RESULT_CHARS) {
         out.recommendations.push(
           `[model-overkill] Avg output length ${Math.round(avgLen)} chars on ${currentModel}. ` +
-          `Consider haiku.`,
+            `Consider haiku.`,
         );
       }
     }
@@ -126,11 +141,12 @@ export function evaluateTask(taskId: string): OptimizationResult {
   }
 
   // --- Rule 4: High cost, low value ---
-  const avgDuration = runs.reduce((sum, r) => sum + r.duration_ms, 0) / runs.length;
+  const avgDuration =
+    runs.reduce((sum, r) => sum + r.duration_ms, 0) / runs.length;
   if (silentRatio >= 0.6 && avgDuration > 60000) {
     out.recommendations.push(
       `[cost-waste] Avg ${Math.round(avgDuration / 1000)}s per run, ${Math.round(silentRatio * 100)}% silent. ` +
-      `Burning tokens for nothing.`,
+        `Burning tokens for nothing.`,
     );
   }
 
@@ -160,7 +176,13 @@ export function getEfficiencyReport(): string {
        FROM scheduled_tasks
        WHERE status = 'active' AND schedule_type = 'cron'`,
     )
-    .all() as Array<{ id: string; schedule_type: string; schedule_value: string; model: string | null; status: string }>;
+    .all() as Array<{
+    id: string;
+    schedule_type: string;
+    schedule_value: string;
+    model: string | null;
+    status: string;
+  }>;
 
   const lines: string[] = ['Task Efficiency Report:', ''];
 

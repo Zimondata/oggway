@@ -127,7 +127,8 @@ export function cleanupOrphans(): void {
     const orphans = containers
       .filter(
         (c) =>
-          c.status === 'running' && c.configuration.id.startsWith('claudeclaw-'),
+          c.status === 'running' &&
+          c.configuration.id.startsWith('claudeclaw-'),
       )
       .map((c) => c.configuration.id);
     for (const name of orphans) {

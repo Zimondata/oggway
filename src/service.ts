@@ -30,20 +30,35 @@ import { loadExtensions } from './orchestrator/extension-loader.js';
 function startBrowserDaemon(): void {
   try {
     // import.meta.url points to dist/service.js; the repo root is one level up.
-    const codeRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+    const codeRoot = path.resolve(
+      path.dirname(new URL(import.meta.url).pathname),
+      '..',
+    );
     const script = path.join(codeRoot, 'scripts', 'browser-daemon.sh');
     if (!fs.existsSync(script)) {
-      console.warn(`[service] browser daemon script not found at ${script}, skipping autostart`);
+      console.warn(
+        `[service] browser daemon script not found at ${script}, skipping autostart`,
+      );
       return;
     }
     const child = spawn('bash', [script, 'start'], { cwd: codeRoot });
-    child.stdout?.on('data', (d) => process.stdout.write(`[browser-daemon] ${d}`));
-    child.stderr?.on('data', (d) => process.stderr.write(`[browser-daemon] ${d}`));
+    child.stdout?.on('data', (d) =>
+      process.stdout.write(`[browser-daemon] ${d}`),
+    );
+    child.stderr?.on('data', (d) =>
+      process.stderr.write(`[browser-daemon] ${d}`),
+    );
     child.on('error', (err) => {
-      console.error('[service] failed to spawn browser daemon:', err instanceof Error ? err.message : String(err));
+      console.error(
+        '[service] failed to spawn browser daemon:',
+        err instanceof Error ? err.message : String(err),
+      );
     });
   } catch (err) {
-    console.error('[service] browser daemon autostart error:', err instanceof Error ? err.message : String(err));
+    console.error(
+      '[service] browser daemon autostart error:',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }
 
@@ -67,15 +82,26 @@ function startStaleRunnerWatchdog(): void {
 
   const parseEtime = (s: string): number => {
     const [days, time] = s.includes('-') ? s.split('-') : ['0', s];
-    const parts = time.split(':').reverse().map((x) => parseInt(x, 10) || 0);
-    return parseInt(days, 10) * 86400 + (parts[2] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[0] || 0);
+    const parts = time
+      .split(':')
+      .reverse()
+      .map((x) => parseInt(x, 10) || 0);
+    return (
+      parseInt(days, 10) * 86400 +
+      (parts[2] || 0) * 3600 +
+      (parts[1] || 0) * 60 +
+      (parts[0] || 0)
+    );
   };
 
   const hasActiveTcp = (pid: number): boolean => {
     try {
-      const out = execSync(`lsof -p ${pid} -iTCP -nP 2>/dev/null | grep ESTABLISHED || true`, {
-        encoding: 'utf-8',
-      });
+      const out = execSync(
+        `lsof -p ${pid} -iTCP -nP 2>/dev/null | grep ESTABLISHED || true`,
+        {
+          encoding: 'utf-8',
+        },
+      );
       return out.trim().length > 0;
     } catch {
       return false;
@@ -99,7 +125,9 @@ function startStaleRunnerWatchdog(): void {
         if (cpu > 0.5) continue;
         if (hasActiveTcp(pid)) continue;
         try {
-          const pgidRaw = execSync(`ps -o pgid= -p ${pid}`, { encoding: 'utf-8' }).trim();
+          const pgidRaw = execSync(`ps -o pgid= -p ${pid}`, {
+            encoding: 'utf-8',
+          }).trim();
           const pgid = parseInt(pgidRaw, 10);
           if (pgid > 0) {
             process.kill(-pgid, 'SIGKILL');
@@ -132,19 +160,27 @@ const LOCK_SOCKET = path.join(process.cwd(), 'store', 'service.lock');
  * (connect returns ECONNREFUSED), and the next instance can reclaim it.
  */
 async function acquireServiceLock(): Promise<void> {
-  try { fs.mkdirSync(path.dirname(LOCK_SOCKET), { recursive: true }); } catch {}
+  try {
+    fs.mkdirSync(path.dirname(LOCK_SOCKET), { recursive: true });
+  } catch {}
 
   const tryListen = (): Promise<net.Server> =>
     new Promise((resolve, reject) => {
       const srv = net.createServer();
       srv.on('error', reject);
-      srv.listen(LOCK_SOCKET, () => { srv.removeAllListeners('error'); resolve(srv); });
+      srv.listen(LOCK_SOCKET, () => {
+        srv.removeAllListeners('error');
+        resolve(srv);
+      });
     });
 
   const isSocketAlive = (): Promise<boolean> =>
     new Promise((resolve) => {
       const probe = net.createConnection({ path: LOCK_SOCKET });
-      probe.on('connect', () => { probe.end(); resolve(true); });
+      probe.on('connect', () => {
+        probe.end();
+        resolve(true);
+      });
       probe.on('error', () => resolve(false));
     });
 
@@ -155,15 +191,21 @@ async function acquireServiceLock(): Promise<void> {
     if (err.code !== 'EADDRINUSE') throw err;
     // Socket file exists - check if another instance is alive
     if (await isSocketAlive()) {
-      console.error('[service] another ClaudeClaw instance is running, exiting');
+      console.error(
+        '[service] another ClaudeClaw instance is running, exiting',
+      );
       process.exit(0);
     }
     // Stale socket from dead process - clean up and retry once
-    try { fs.unlinkSync(LOCK_SOCKET); } catch {}
+    try {
+      fs.unlinkSync(LOCK_SOCKET);
+    } catch {}
     try {
       lockServer = await tryListen();
     } catch {
-      console.error('[service] failed to acquire lock after stale cleanup, exiting');
+      console.error(
+        '[service] failed to acquire lock after stale cleanup, exiting',
+      );
       process.exit(0);
     }
   }
@@ -178,11 +220,19 @@ async function acquireServiceLock(): Promise<void> {
       const v = fs.readFileSync(PID_FILE, 'utf-8').trim();
       if (Number(v) === process.pid) fs.unlinkSync(PID_FILE);
     } catch {}
-    try { fs.unlinkSync(LOCK_SOCKET); } catch {}
+    try {
+      fs.unlinkSync(LOCK_SOCKET);
+    } catch {}
   };
   process.on('exit', cleanup);
-  process.on('SIGINT', () => { cleanup(); process.exit(0); });
-  process.on('SIGTERM', () => { cleanup(); process.exit(0); });
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    cleanup();
+    process.exit(0);
+  });
 }
 
 async function start(): Promise<void> {
@@ -194,16 +244,26 @@ async function start(): Promise<void> {
   try {
     await import('./channels/index.js');
   } catch (err) {
-    console.error('[service] failed to load channels:', err instanceof Error ? err.message : String(err));
+    console.error(
+      '[service] failed to load channels:',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 
   // Load built-in extensions (always present in core)
-  const builtinExtensions = ['./cost-tracking/index.js', './skill-registry/index.js', './webhook/index.js'];
+  const builtinExtensions = [
+    './cost-tracking/index.js',
+    './skill-registry/index.js',
+    './webhook/index.js',
+  ];
   for (const ext of builtinExtensions) {
     try {
       await import(ext);
     } catch (err) {
-      console.error(`[service] failed to load built-in extension ${ext}:`, err instanceof Error ? err.message : String(err));
+      console.error(
+        `[service] failed to load built-in extension ${ext}:`,
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
@@ -211,11 +271,15 @@ async function start(): Promise<void> {
   try {
     await loadExtensions();
   } catch (err) {
-    console.error('[service] failed to load installable extensions:', err instanceof Error ? err.message : String(err));
+    console.error(
+      '[service] failed to load installable extensions:',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 
   // Initialise credential pool (round-robin between API keys when configured)
-  const { initCredentialPool } = await import('./orchestrator/credential-pool.js');
+  const { initCredentialPool } =
+    await import('./orchestrator/credential-pool.js');
   initCredentialPool();
 
   // Start the orchestrator

@@ -17,7 +17,11 @@ import {
   ASSISTANT_NAME,
   STORE_DIR,
 } from '../orchestrator/config.js';
-import { getLastGroupSync, setLastGroupSync, updateChatName } from '../orchestrator/db.js';
+import {
+  getLastGroupSync,
+  setLastGroupSync,
+  updateChatName,
+} from '../orchestrator/db.js';
 import { logger } from '../orchestrator/logger.js';
 import {
   Channel,
@@ -25,7 +29,10 @@ import {
   OnChatMetadata,
   RegisteredGroup,
 } from '../orchestrator/types.js';
-import { registerChannel, ChannelOpts } from '../orchestrator/channel-registry.js';
+import {
+  registerChannel,
+  ChannelOpts,
+} from '../orchestrator/channel-registry.js';
 
 const GROUP_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -88,7 +95,14 @@ export class WhatsAppChannel implements Channel {
         const msg =
           'WhatsApp authentication required. Run /setup in Claude Code.';
         logger.error(msg);
-        execFile('osascript', ['-e', `display notification "${msg}" with title "ClaudeClaw" sound name "Basso"`], () => {});
+        execFile(
+          'osascript',
+          [
+            '-e',
+            `display notification "${msg}" with title "ClaudeClaw" sound name "Basso"`,
+          ],
+          () => {},
+        );
         setTimeout(() => process.exit(1), 1000);
       }
 
@@ -400,7 +414,9 @@ registerChannel('whatsapp', (opts: ChannelOpts) => {
   const authDir = path.join(STORE_DIR, 'auth');
   const credsFile = path.join(authDir, 'creds.json');
   if (!fs.existsSync(credsFile)) {
-    logger.warn('WhatsApp: no auth credentials found (store/auth/creds.json) — skipping. Run /add-whatsapp to set up.');
+    logger.warn(
+      'WhatsApp: no auth credentials found (store/auth/creds.json) — skipping. Run /add-whatsapp to set up.',
+    );
     return null;
   }
   return new WhatsAppChannel(opts);

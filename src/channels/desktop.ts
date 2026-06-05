@@ -14,7 +14,10 @@
 import http from 'http';
 import { randomUUID } from 'crypto';
 
-import { registerChannel, ChannelOpts } from '../orchestrator/channel-registry.js';
+import {
+  registerChannel,
+  ChannelOpts,
+} from '../orchestrator/channel-registry.js';
 import { readEnvFile } from '../orchestrator/env.js';
 import { logger } from '../orchestrator/logger.js';
 import type {
@@ -49,7 +52,9 @@ export class DesktopChannel implements Channel {
   }
 
   async connect(): Promise<void> {
-    const server = http.createServer((req, res) => this.handleRequest(req, res));
+    const server = http.createServer((req, res) =>
+      this.handleRequest(req, res),
+    );
 
     await new Promise<void>((resolve, reject) => {
       server.on('error', reject);
@@ -88,7 +93,11 @@ export class DesktopChannel implements Channel {
     return { messageId };
   }
 
-  async editMessage(jid: string, messageId: string | number, text: string): Promise<void> {
+  async editMessage(
+    jid: string,
+    messageId: string | number,
+    text: string,
+  ): Promise<void> {
     const topicId = jid.replace(JID_PREFIX, '');
 
     this.broadcastSSE(topicId, {
@@ -147,7 +156,10 @@ export class DesktopChannel implements Channel {
     this.clients = alive;
   }
 
-  private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
+  private handleRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): void {
     // CORS for Tauri webview
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -181,18 +193,20 @@ export class DesktopChannel implements Channel {
 
   private handleHealth(res: http.ServerResponse): void {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      channel: 'desktop',
-      clients: this.clients.length,
-    }));
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        channel: 'desktop',
+        clients: this.clients.length,
+      }),
+    );
   }
 
   private handleSSE(topicId: string, res: http.ServerResponse): void {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     });
 
     // Send initial connected event
@@ -286,12 +300,14 @@ export class DesktopChannel implements Channel {
     const topicId = parsed.id || randomUUID().slice(0, 8);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      ok: true,
-      topicId,
-      jid: JID_PREFIX + topicId,
-      folder: `desktop_topic_${topicId}`,
-    }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        topicId,
+        jid: JID_PREFIX + topicId,
+        folder: `desktop_topic_${topicId}`,
+      }),
+    );
   }
 }
 

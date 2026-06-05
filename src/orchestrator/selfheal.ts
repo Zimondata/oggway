@@ -56,10 +56,14 @@ function findApprovedIncidents(autoApprove: boolean): IncidentRef[] {
       if (
         fs.existsSync(path.join(incidentsDir, `${id}.FIXED`)) ||
         fs.existsSync(path.join(incidentsDir, `${id}.FAILED`))
-      ) continue;
+      )
+        continue;
       // In autoApprove mode, promote pending .md → .APPROVED on the fly
       if (isPendingMd && !fs.existsSync(approvedPath)) {
-        fs.writeFileSync(approvedPath, `auto-approved ${new Date().toISOString()}`);
+        fs.writeFileSync(
+          approvedPath,
+          `auto-approved ${new Date().toISOString()}`,
+        );
       }
       // Pull chat_jid from incident file header
       const md = fs.readFileSync(incidentPath, 'utf-8');
@@ -67,7 +71,13 @@ function findApprovedIncidents(autoApprove: boolean): IncidentRef[] {
       const chatJid = chatMatch ? chatMatch[1] : '';
       // Dedup — one ref per id
       if (results.some((r) => r.id === id)) continue;
-      results.push({ groupFolder: folder, chatJid, id, incidentPath, approvedPath });
+      results.push({
+        groupFolder: folder,
+        chatJid,
+        id,
+        incidentPath,
+        approvedPath,
+      });
     }
   }
   return results;
@@ -99,14 +109,23 @@ function clearStaleLockOnStartup(): void {
     try {
       const pid = fs.readFileSync(LOCK_FILE, 'utf-8').trim();
       fs.unlinkSync(LOCK_FILE);
-      logger.warn({ stalePid: pid }, 'Self-heal: cleared stale lock from dead process');
-    } catch { /* ignore */ }
+      logger.warn(
+        { stalePid: pid },
+        'Self-heal: cleared stale lock from dead process',
+      );
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 function acquireLock(): boolean {
   if (isLockStale()) {
-    try { fs.unlinkSync(LOCK_FILE); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(LOCK_FILE);
+    } catch {
+      /* ignore */
+    }
   }
   try {
     fs.mkdirSync(path.dirname(LOCK_FILE), { recursive: true });
@@ -118,7 +137,11 @@ function acquireLock(): boolean {
 }
 
 function releaseLock(): void {
-  try { fs.unlinkSync(LOCK_FILE); } catch { /* ignore */ }
+  try {
+    fs.unlinkSync(LOCK_FILE);
+  } catch {
+    /* ignore */
+  }
 }
 
 function buildFixerPrompt(
@@ -191,10 +214,14 @@ Chat JID: ${chatJid}
 }
 
 async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
-  logger.info({ id: ref.id, group: ref.groupFolder }, 'Self-heal: starting fixer');
+  logger.info(
+    { id: ref.id, group: ref.groupFolder },
+    'Self-heal: starting fixer',
+  );
 
   const env = readEnvFile(['TELEGRAM_BOT_TOKEN']);
-  const telegramBotToken = env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
+  const telegramBotToken =
+    env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
   const prompt = buildFixerPrompt(
     ref.incidentPath,
     ref.id,
@@ -210,9 +237,15 @@ async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
   const channel = channels.find((c) => c.ownsJid(ref.chatJid));
   if (channel && ref.chatJid) {
     try {
-      await channel.sendMessage(ref.chatJid, `🔧 Fixer запущен по incident ${ref.id}. Жди отчёт.`);
+      await channel.sendMessage(
+        ref.chatJid,
+        `🔧 Fixer запущен по incident ${ref.id}. Жди отчёт.`,
+      );
     } catch (err) {
-      logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Self-heal: startup notify failed');
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Self-heal: startup notify failed',
+      );
     }
   }
 
@@ -226,7 +259,8 @@ async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
       [
         '--print',
         '--dangerously-skip-permissions',
-        '--output-format', 'text',
+        '--output-format',
+        'text',
         prompt,
       ],
       {
@@ -243,10 +277,17 @@ async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
       stderr += chunk.toString();
     });
     // Safety: kill after 20 min
-    const killTimer = setTimeout(() => {
-      logger.warn({ id: ref.id }, 'Self-heal: fixer timeout, killing');
-      try { child.kill('SIGKILL'); } catch { /* ignore */ }
-    }, 20 * 60 * 1000);
+    const killTimer = setTimeout(
+      () => {
+        logger.warn({ id: ref.id }, 'Self-heal: fixer timeout, killing');
+        try {
+          child.kill('SIGKILL');
+        } catch {
+          /* ignore */
+        }
+      },
+      20 * 60 * 1000,
+    );
 
     child.on('exit', (code) => {
       clearTimeout(killTimer);
@@ -264,11 +305,17 @@ async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
         const status = success ? '✓ Fixer done' : '✗ Fixer failed';
         const msg = `${status} (${duration}s, incident ${ref.id})\n\n${summary.slice(-1500)}`;
         channel.sendMessage(ref.chatJid, msg).catch((err) => {
-          logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Self-heal: result notify failed');
+          logger.warn(
+            { err: err instanceof Error ? err.message : String(err) },
+            'Self-heal: result notify failed',
+          );
         });
       }
 
-      logger.info({ id: ref.id, success, duration, code }, 'Self-heal: fixer finished');
+      logger.info(
+        { id: ref.id, success, duration, code },
+        'Self-heal: fixer finished',
+      );
       resolve();
     });
   });
@@ -277,26 +324,41 @@ async function runFixer(ref: IncidentRef, channels: Channel[]): Promise<void> {
 export function startSelfHealWatcher(channels: Channel[]): void {
   const autoApprove = process.env.SELFHEAL_AUTO_APPROVE === '1';
   clearStaleLockOnStartup();
-  logger.info({ autoApprove }, `Self-heal watcher starting (poll every 15s${autoApprove ? ', AUTO-APPROVE MODE' : ''})`);
+  logger.info(
+    { autoApprove },
+    `Self-heal watcher starting (poll every 15s${autoApprove ? ', AUTO-APPROVE MODE' : ''})`,
+  );
 
   const tick = async () => {
     const pending = findApprovedIncidents(autoApprove);
     for (const ref of pending) {
       if (!acquireLock()) {
-        logger.debug({ id: ref.id }, 'Self-heal: another fixer running, skipping');
+        logger.debug(
+          { id: ref.id },
+          'Self-heal: another fixer running, skipping',
+        );
         return;
       }
       try {
         await runFixer(ref, channels);
       } catch (err) {
-        logger.error({ err: err instanceof Error ? err.message : String(err), id: ref.id }, 'Self-heal: fixer crashed');
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err), id: ref.id },
+          'Self-heal: fixer crashed',
+        );
       } finally {
         releaseLock();
       }
     }
   };
 
-  setInterval(() => { tick().catch(() => { /* never throw */ }); }, POLL_INTERVAL_MS);
+  setInterval(() => {
+    tick().catch(() => {
+      /* never throw */
+    });
+  }, POLL_INTERVAL_MS);
   // First tick immediately
-  tick().catch(() => { /* ignore */ });
+  tick().catch(() => {
+    /* ignore */
+  });
 }

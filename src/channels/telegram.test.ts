@@ -3,7 +3,9 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 // --- Mocks ---
 
 // Mock registry (registerChannel runs at import time)
-vi.mock('../orchestrator/channel-registry.js', () => ({ registerChannel: vi.fn() }));
+vi.mock('../orchestrator/channel-registry.js', () => ({
+  registerChannel: vi.fn(),
+}));
 
 // Mock env reader (used by the factory, not needed in unit tests)
 vi.mock('../orchestrator/env.js', () => ({ readEnvFile: vi.fn(() => ({})) }));
@@ -791,8 +793,8 @@ describe('TelegramChannel', () => {
       const channel = new TelegramChannel('test-token', opts);
       await channel.connect();
 
-      currentBot().api.sendMessage
-        .mockRejectedValueOnce(new Error('Network error'))  // Markdown attempt
+      currentBot()
+        .api.sendMessage.mockRejectedValueOnce(new Error('Network error')) // Markdown attempt
         .mockRejectedValueOnce(new Error('Network error')); // Plain text fallback
 
       // Should not throw

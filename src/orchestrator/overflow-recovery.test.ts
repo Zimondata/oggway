@@ -19,7 +19,11 @@ describe('Context overflow inference', () => {
     contextOverflow?: boolean;
   };
 
-  function shouldContinue(result: MockResult, continuationCount: number, max: number): boolean {
+  function shouldContinue(
+    result: MockResult,
+    continuationCount: number,
+    max: number,
+  ): boolean {
     // This mirrors the actual condition in message-loop.ts (post-fix)
     return !!result.contextOverflow && continuationCount < max;
   }
@@ -101,7 +105,10 @@ describe('Model routing - opus for all', () => {
   });
 
   it('routes default (unmatched) to opus', () => {
-    const result = routeModel('random message that matches no pattern', undefined);
+    const result = routeModel(
+      'random message that matches no pattern',
+      undefined,
+    );
     expect(result.model).toBe('opus');
   });
 
@@ -115,7 +122,9 @@ describe('Cursor management after failures', () => {
   it('cursor should be set to current time, not deleted, after 2 failures', () => {
     // Simulate the fixed behavior: instead of `delete lastAgentTimestamp[jid]`
     // we now do `lastAgentTimestamp[jid] = new Date().toISOString()`
-    const cursor: Record<string, string> = { 'test-jid': '2026-05-08T10:00:00Z' };
+    const cursor: Record<string, string> = {
+      'test-jid': '2026-05-08T10:00:00Z',
+    };
 
     // The OLD (buggy) behavior was: delete cursor['test-jid']
     // Which makes cursor['test-jid'] || '' return '', pulling all messages

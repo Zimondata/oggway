@@ -26,11 +26,21 @@ import {
   runContainerAgent,
 } from '../runtimes/container-runner.js';
 import { runSandboxAgent } from '../runtimes/sandbox-runner.js';
-import { createTask, getTaskById, logTaskRun, updateTaskAfterRun } from './db.js';
+import {
+  createTask,
+  getTaskById,
+  logTaskRun,
+  updateTaskAfterRun,
+} from './db.js';
 import { GroupQueue } from './group-queue.js';
 import { logger } from './logger.js';
 import { interceptRateLimit } from './rate-limit-state.js';
-import { AgentConfig, MessageRouter, RegisteredGroup, ScheduledTask } from './types.js';
+import {
+  AgentConfig,
+  MessageRouter,
+  RegisteredGroup,
+  ScheduledTask,
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Prompts
@@ -97,9 +107,18 @@ Do NOT modify SOUL.md directly — only proposals. If you find no genuinely new 
 // Detection
 // ---------------------------------------------------------------------------
 
-const DREAM_PREFIX_PATTERN = /^\[(DREAM-(LIGHT|NIGHT|WEEKLY)|COST-WATCH|REFLECT|SOUL-EVOLVE|GRIP-SWEEP|CONTINUATION)/i;
+const DREAM_PREFIX_PATTERN =
+  /^\[(DREAM-(LIGHT|NIGHT|WEEKLY)|COST-WATCH|REFLECT|SOUL-EVOLVE|GRIP-SWEEP|CONTINUATION)/i;
 
-export type SystemTaskKind = 'dream-light' | 'dream-night' | 'dream-weekly' | 'cost-watch' | 'reflect' | 'soul-evolve' | 'grip-sweep' | 'continuation';
+export type SystemTaskKind =
+  | 'dream-light'
+  | 'dream-night'
+  | 'dream-weekly'
+  | 'cost-watch'
+  | 'reflect'
+  | 'soul-evolve'
+  | 'grip-sweep'
+  | 'continuation';
 
 export function detectSystemTaskKind(prompt: string): SystemTaskKind | null {
   // Defensive: prompt may arrive as a Buffer if a sqlite row was written as
@@ -287,9 +306,8 @@ export async function dispatchSystemTask(
     agentConfig: mergedAgentConfig,
   };
 
-  const sessionId = task.context_mode === 'group'
-    ? deps.sessions()[group.folder]
-    : undefined;
+  const sessionId =
+    task.context_mode === 'group' ? deps.sessions()[group.folder] : undefined;
 
   let result: string | null = null;
   let error: string | null = null;
@@ -312,7 +330,9 @@ export async function dispatchSystemTask(
     setTimeout(() => {
       try {
         deps.queue.closeStdin(queueKey);
-      } catch { /* queue may not have a tracked process */ }
+      } catch {
+        /* queue may not have a tracked process */
+      }
     }, TASK_CLOSE_DELAY_MS);
   };
 
@@ -378,18 +398,35 @@ export async function dispatchSystemTask(
     );
     try {
       deps.queue.closeStdin(queueKey);
-    } catch { /* queue may not have a tracked process */ }
+    } catch {
+      /* queue may not have a tracked process */
+    }
     setTimeout(() => {
       if (activeProc && !activeProc.killed) {
-        try { activeProc.kill('SIGKILL'); } catch { /* already exited */ }
+        try {
+          activeProc.kill('SIGKILL');
+        } catch {
+          /* already exited */
+        }
       }
     }, 5_000);
   }, profile.timeoutMs);
 
   try {
-    const output = runtime === 'sandbox'
-      ? await runSandboxAgent(groupForRun, agentInput, onProcessCb, onStreamed)
-      : await runContainerAgent(groupForRun, agentInput, onProcessCb, onStreamed);
+    const output =
+      runtime === 'sandbox'
+        ? await runSandboxAgent(
+            groupForRun,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          )
+        : await runContainerAgent(
+            groupForRun,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          );
     if (output.status === 'error') {
       error = error ?? output.error ?? 'Unknown error';
     } else if (output.result) {
@@ -433,7 +470,9 @@ export async function dispatchSystemTask(
   let nextRun: string | null = null;
   if (task.schedule_type === 'cron') {
     try {
-      const interval = CronExpressionParser.parse(task.schedule_value, { tz: TIMEZONE });
+      const interval = CronExpressionParser.parse(task.schedule_value, {
+        tz: TIMEZONE,
+      });
       nextRun = interval.next().toISOString();
     } catch {
       nextRun = null;

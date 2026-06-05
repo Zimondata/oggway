@@ -17,7 +17,10 @@ import os from 'os';
 import path from 'path';
 
 import { readEnvFile } from '../orchestrator/env.js';
-import { getNextKey, isPoolConfigured } from '../orchestrator/credential-pool.js';
+import {
+  getNextKey,
+  isPoolConfigured,
+} from '../orchestrator/credential-pool.js';
 import {
   CODE_ROOT,
   CONTAINER_MAX_OUTPUT_SIZE,
@@ -27,11 +30,17 @@ import {
   IDLE_TIMEOUT,
   TIMEZONE,
 } from '../orchestrator/config.js';
-import { resolveGroupFolderPath, resolveGroupIpcPath } from '../orchestrator/group-folder.js';
+import {
+  resolveGroupFolderPath,
+  resolveGroupIpcPath,
+} from '../orchestrator/group-folder.js';
 import { logger } from '../orchestrator/logger.js';
 import { validateAdditionalMounts } from '../orchestrator/mount-security.js';
 import { RegisteredGroup } from '../orchestrator/types.js';
-import { getExtensionAllowedDomains, getExtensionDeclaredEnvKeys } from '../orchestrator/extension-loader.js';
+import {
+  getExtensionAllowedDomains,
+  getExtensionDeclaredEnvKeys,
+} from '../orchestrator/extension-loader.js';
 import { getExtensionContainerEnvKeys } from '../orchestrator/extensions.js';
 import type { ContainerInput, ContainerOutput } from './container-runner.js';
 
@@ -505,10 +514,18 @@ export async function runSandboxAgent(
     // a refresh in the parent by making any Claude API call, which forces
     // the CLI to rotate the token in keychain. Then we pass the fresh one.
     let keychainToken: string | undefined;
-    if (!secrets.ANTHROPIC_API_KEY && !secrets.CLAUDE_CODE_OAUTH_TOKEN && !secrets.ANTHROPIC_AUTH_TOKEN) {
+    if (
+      !secrets.ANTHROPIC_API_KEY &&
+      !secrets.CLAUDE_CODE_OAUTH_TOKEN &&
+      !secrets.ANTHROPIC_AUTH_TOKEN
+    ) {
       const readKeychain = (): { token?: string; expiresAt?: number } => {
         try {
-          const raw = execFileSync('security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w'], { encoding: 'utf-8' }).trim();
+          const raw = execFileSync(
+            'security',
+            ['find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+            { encoding: 'utf-8' },
+          ).trim();
           const parsed = JSON.parse(raw);
           return {
             token: parsed?.claudeAiOauth?.accessToken,
@@ -522,14 +539,24 @@ export async function runSandboxAgent(
       let { token, expiresAt } = readKeychain();
       const bufferMs = 5 * 60 * 1000; // refresh if <5 min remaining
       if (token && expiresAt && expiresAt - Date.now() < bufferMs) {
-        logger.info({ expiresIn: Math.round((expiresAt - Date.now()) / 1000) }, 'Claude OAuth token expiring soon, forcing refresh');
+        logger.info(
+          { expiresIn: Math.round((expiresAt - Date.now()) / 1000) },
+          'Claude OAuth token expiring soon, forcing refresh',
+        );
         try {
-          execFileSync('claude', ['-p', 'ok', '--output-format', 'text', '--max-turns', '1'], {
-            stdio: 'pipe',
-            timeout: 20000,
-          });
+          execFileSync(
+            'claude',
+            ['-p', 'ok', '--output-format', 'text', '--max-turns', '1'],
+            {
+              stdio: 'pipe',
+              timeout: 20000,
+            },
+          );
         } catch (err) {
-          logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Token refresh attempt failed');
+          logger.warn(
+            { err: err instanceof Error ? err.message : String(err) },
+            'Token refresh attempt failed',
+          );
         }
         const refreshed = readKeychain();
         token = refreshed.token ?? token;
@@ -540,7 +567,10 @@ export async function runSandboxAgent(
     const authEnv: Record<string, string> = secrets.ANTHROPIC_API_KEY
       ? { ANTHROPIC_API_KEY: secrets.ANTHROPIC_API_KEY }
       : secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN
-        ? { CLAUDE_CODE_OAUTH_TOKEN: secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN! }
+        ? {
+            CLAUDE_CODE_OAUTH_TOKEN:
+              secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN!,
+          }
         : keychainToken
           ? { CLAUDE_CODE_OAUTH_TOKEN: keychainToken }
           : {};
@@ -548,17 +578,31 @@ export async function runSandboxAgent(
     // Build minimal env — only what the sandbox process actually needs.
     // Spreading process.env would leak HOME, SSH_AUTH_SOCK, AWS keys, etc.
     const safeEnvKeys = [
-      'PATH', 'HOME', 'USER', 'SHELL', 'LANG', 'LC_ALL', 'TERM',
-      'NODE_PATH', 'NODE_OPTIONS', 'NPM_CONFIG_PREFIX',
-      'TMPDIR', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME',
+      'PATH',
+      'HOME',
+      'USER',
+      'SHELL',
+      'LANG',
+      'LC_ALL',
+      'TERM',
+      'NODE_PATH',
+      'NODE_OPTIONS',
+      'NPM_CONFIG_PREFIX',
+      'TMPDIR',
+      'XDG_RUNTIME_DIR',
+      'XDG_CONFIG_HOME',
       // Third-party API credentials passed through to the agent so MCP tools
       // (web_unlock, twitter_*) and helper scripts can use them.
-      'TWITTER_API_KEY', 'TWITTER_API_SECRET',
-      'TWITTER_ACCESS_TOKEN', 'TWITTER_ACCESS_TOKEN_SECRET',
+      'TWITTER_API_KEY',
+      'TWITTER_API_SECRET',
+      'TWITTER_ACCESS_TOKEN',
+      'TWITTER_ACCESS_TOKEN_SECRET',
       'TWITTER_BEARER_TOKEN',
-      'BRIGHTDATA_API_TOKEN', 'BRIGHTDATA_ZONE',
+      'BRIGHTDATA_API_TOKEN',
+      'BRIGHTDATA_ZONE',
       // Wiki tools - Karpathy LLM Wiki pattern, vault root for wiki_read/search/index MCP
-      'VAULT_ROOT', 'OBSIDIAN_VAULT',
+      'VAULT_ROOT',
+      'OBSIDIAN_VAULT',
       // Extension-declared env keys: code-registered (registerExtension) and
       // manifest-declared (provides.envKeys, for prompt-only extensions).
       ...getExtensionContainerEnvKeys(),
@@ -604,7 +648,10 @@ export async function runSandboxAgent(
       child.stdin!.write(JSON.stringify(input));
       child.stdin!.end();
     } catch (err) {
-      logger.error({ err, group: group.name }, 'Failed to write to sandbox stdin');
+      logger.error(
+        { err, group: group.name },
+        'Failed to write to sandbox stdin',
+      );
       return resolve({
         status: 'error',
         result: null,
@@ -660,9 +707,7 @@ export async function runSandboxAgent(
       if (onOutput) {
         parseBuffer += chunk;
         let startIdx: number;
-        while (
-          (startIdx = parseBuffer.indexOf(OUTPUT_START_MARKER)) !== -1
-        ) {
+        while ((startIdx = parseBuffer.indexOf(OUTPUT_START_MARKER)) !== -1) {
           const endIdx = parseBuffer.indexOf(OUTPUT_END_MARKER, startIdx);
           if (endIdx === -1) break;
 
@@ -678,9 +723,14 @@ export async function runSandboxAgent(
             }
             hadStreamingOutput = true;
             resetTimeout();
-            outputChain = outputChain.then(() => onOutput(parsed)).catch((err) => {
-              logger.warn({ err, group: group.name }, 'onOutput handler threw during streaming');
-            });
+            outputChain = outputChain
+              .then(() => onOutput(parsed))
+              .catch((err) => {
+                logger.warn(
+                  { err, group: group.name },
+                  'onOutput handler threw during streaming',
+                );
+              });
           } catch (err) {
             logger.warn(
               { group: group.name, error: err },
@@ -770,7 +820,13 @@ export async function runSandboxAgent(
           // rolls back the cursor and retries instead of marking success.
           if (!hadStreamingOutput) {
             logger.error(
-              { group: group.name, duration, code, processName, stderrTail: stderr.slice(-500) },
+              {
+                group: group.name,
+                duration,
+                code,
+                processName,
+                stderrTail: stderr.slice(-500),
+              },
               'Sandbox exited with code 0 but produced no output (silent death)',
             );
             resolve({

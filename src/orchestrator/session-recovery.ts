@@ -41,7 +41,10 @@ export function loadSessionMappings(): SessionMappings {
     return JSON.parse(data) as SessionMappings;
   } catch (err) {
     logger.warn(
-      { err: err instanceof Error ? err.message : String(err), file: SESSION_MAPPINGS_FILE },
+      {
+        err: err instanceof Error ? err.message : String(err),
+        file: SESSION_MAPPINGS_FILE,
+      },
       'Failed to load session mappings, starting fresh',
     );
     return {};
@@ -105,7 +108,10 @@ export function loadSessionCarryover(): SessionCarryover {
     return JSON.parse(data) as SessionCarryover;
   } catch (err) {
     logger.warn(
-      { err: err instanceof Error ? err.message : String(err), file: SESSION_CARRYOVER_FILE },
+      {
+        err: err instanceof Error ? err.message : String(err),
+        file: SESSION_CARRYOVER_FILE,
+      },
       'Failed to load session carryover',
     );
     return {};
@@ -163,8 +169,10 @@ export function consumeCarryover(
  */
 export function clearAllSessions(): void {
   try {
-    if (fs.existsSync(SESSION_MAPPINGS_FILE)) fs.unlinkSync(SESSION_MAPPINGS_FILE);
-    if (fs.existsSync(SESSION_CARRYOVER_FILE)) fs.unlinkSync(SESSION_CARRYOVER_FILE);
+    if (fs.existsSync(SESSION_MAPPINGS_FILE))
+      fs.unlinkSync(SESSION_MAPPINGS_FILE);
+    if (fs.existsSync(SESSION_CARRYOVER_FILE))
+      fs.unlinkSync(SESSION_CARRYOVER_FILE);
     logger.info('Cleared all session files');
   } catch (err) {
     logger.warn({ err }, 'Failed to clear session files');

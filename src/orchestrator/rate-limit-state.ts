@@ -15,7 +15,12 @@
  */
 
 import { TIMEZONE } from './config.js';
-import { getCurrentKeyLabel, hasLiveKeys, isPoolConfigured, markKeyDead } from './credential-pool.js';
+import {
+  getCurrentKeyLabel,
+  hasLiveKeys,
+  isPoolConfigured,
+  markKeyDead,
+} from './credential-pool.js';
 import { logger } from './logger.js';
 import { MessageRouter } from './types.js';
 
@@ -31,7 +36,7 @@ let state: RateLimitState | null = null;
 //   "resets 12am (Europe/Madrid)"    — H only, no minutes (e.g. midnight, noon)
 const RESET_PATTERN =
   /You've hit your limit.*?resets\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*\(([^)]+)\)/i;
-const HIT_MARKER = "hit your limit";
+const HIT_MARKER = 'hit your limit';
 
 export function detectRateLimit(text: string | null | undefined): {
   hit: boolean;

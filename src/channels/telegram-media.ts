@@ -19,7 +19,9 @@ print(result["text"].strip())
  * Transcribe an audio file using local openai-whisper (Python).
  * Returns the transcript text, or null on failure.
  */
-export async function transcribeAudio(audioPath: string): Promise<string | null> {
+export async function transcribeAudio(
+  audioPath: string,
+): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync(
       'python3',
@@ -30,7 +32,10 @@ export async function transcribeAudio(audioPath: string): Promise<string | null>
     if (!text) return null;
     return text;
   } catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err), audioPath }, 'Whisper transcription failed');
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), audioPath },
+      'Whisper transcription failed',
+    );
     return null;
   }
 }
@@ -54,7 +59,10 @@ export async function extractPdfText(pdfPath: string): Promise<string | null> {
     }
     return text;
   } catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err), pdfPath }, 'pdftotext extraction failed');
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), pdfPath },
+      'pdftotext extraction failed',
+    );
     return null;
   }
 }
@@ -77,14 +85,20 @@ export async function downloadTelegramFile(
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      logger.warn({ status: response.status, filePath }, 'Telegram file download failed');
+      logger.warn(
+        { status: response.status, filePath },
+        'Telegram file download failed',
+      );
       return null;
     }
     const buf = Buffer.from(await response.arrayBuffer());
     fs.writeFileSync(tmpPath, buf);
     return tmpPath;
   } catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err), filePath }, 'Telegram file download error');
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), filePath },
+      'Telegram file download error',
+    );
     return null;
   }
 }

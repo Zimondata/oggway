@@ -43,7 +43,12 @@ describe('task scheduler', () => {
       getSessions: () => ({}),
       queue: { enqueueTask } as any,
       onProcess: () => {},
-      router: { route: async () => {}, send: async () => {}, addPreHook: () => {}, addPostHook: () => {} } as any,
+      router: {
+        route: async () => {},
+        send: async () => {},
+        addPreHook: () => {},
+        addPostHook: () => {},
+      } as any,
     });
 
     await vi.advanceTimersByTimeAsync(10);

@@ -102,9 +102,7 @@ describe('formatMessages', () => {
     );
     // escapeXmlContent intentionally keeps " literal (legal in XML text)
     // so the agent doesn't see ugly &quot; in history and start mimicking.
-    expect(result).toContain(
-      '&lt;script&gt;alert("xss")&lt;/script&gt;',
-    );
+    expect(result).toContain('&lt;script&gt;alert("xss")&lt;/script&gt;');
   });
 
   it('handles empty array', () => {

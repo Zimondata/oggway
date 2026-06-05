@@ -20,10 +20,10 @@ import { readEnvFile } from './env.js';
 
 interface PoolKey {
   value: string;
-  label: string;       // short label for logs (last 4 chars of key)
-  deadUntil: number | null;  // ms timestamp; null = alive
+  label: string; // short label for logs (last 4 chars of key)
+  deadUntil: number | null; // ms timestamp; null = alive
   usageCount: number;
-  lastUsed: number;    // ms timestamp
+  lastUsed: number; // ms timestamp
 }
 
 let pool: PoolKey[] = [];
@@ -50,7 +50,12 @@ function loadPoolFromEnv(): PoolKey[] {
   // 1. Comma-separated list
   const csv = fromProcess('ANTHROPIC_API_KEYS').trim();
   if (csv) {
-    list.push(...csv.split(',').map((s) => s.trim()).filter(Boolean));
+    list.push(
+      ...csv
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
   }
   // 2. Numbered fallback
   for (let i = 1; i <= 5; i++) {
@@ -83,7 +88,10 @@ export function initCredentialPool(): void {
   if (pool.length === 0) {
     logger.warn('Credential pool: no API keys found in env');
   } else if (pool.length === 1) {
-    logger.info({ keys: pool.map((p) => p.label) }, 'Credential pool: single-key mode (no rotation)');
+    logger.info(
+      { keys: pool.map((p) => p.label) },
+      'Credential pool: single-key mode (no rotation)',
+    );
   } else {
     logger.info(
       { keys: pool.map((p) => p.label), count: pool.length },
@@ -121,10 +129,7 @@ export function getNextKey(): { value: string; label: string } | null {
 
   const live = liveKeys();
   if (live.length === 0) {
-    logger.warn(
-      { dead: pool.length },
-      'Credential pool: all keys exhausted',
-    );
+    logger.warn({ dead: pool.length }, 'Credential pool: all keys exhausted');
     return null;
   }
 

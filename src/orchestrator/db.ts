@@ -14,12 +14,19 @@ import {
 
 let db: Database.Database;
 
-function safeJsonParse(value: string | null | undefined, jid: string, column: string): any {
+function safeJsonParse(
+  value: string | null | undefined,
+  jid: string,
+  column: string,
+): any {
   if (!value) return undefined;
   try {
     return JSON.parse(value);
   } catch {
-    logger.error({ jid, column, value: value.slice(0, 100) }, 'Malformed JSON in DB column');
+    logger.error(
+      { jid, column, value: value.slice(0, 100) },
+      'Malformed JSON in DB column',
+    );
     return undefined;
   }
 }
@@ -151,12 +158,16 @@ function createSchema(
   // Add agent_config column if it doesn't exist (migration for existing DBs)
   try {
     database.exec(`ALTER TABLE registered_groups ADD COLUMN agent_config TEXT`);
-  } catch { /* column already exists */ }
+  } catch {
+    /* column already exists */
+  }
 
   // Add runtime column if it doesn't exist (migration for existing DBs)
   try {
     database.exec(`ALTER TABLE registered_groups ADD COLUMN runtime TEXT`);
-  } catch { /* column already exists */ }
+  } catch {
+    /* column already exists */
+  }
 
   // Add channel and is_group columns if they don't exist (migration for existing DBs)
   try {
@@ -353,13 +364,29 @@ export function storeMessageDirect(msg: {
 export function getMessageById(
   id: string,
   chatJid: string,
-): { id: string; content: string; sender: string; sender_name: string; timestamp: string; is_from_me: boolean } | undefined {
+):
+  | {
+      id: string;
+      content: string;
+      sender: string;
+      sender_name: string;
+      timestamp: string;
+      is_from_me: boolean;
+    }
+  | undefined {
   const row = db
     .prepare(
       'SELECT id, content, sender, sender_name, timestamp, is_from_me FROM messages WHERE id = ? AND chat_jid = ?',
     )
     .get(id, chatJid) as
-    | { id: string; content: string; sender: string; sender_name: string; timestamp: string; is_from_me: number }
+    | {
+        id: string;
+        content: string;
+        sender: string;
+        sender_name: string;
+        timestamp: string;
+        is_from_me: number;
+      }
     | undefined;
   if (!row) return undefined;
   return { ...row, is_from_me: !!row.is_from_me };
@@ -380,7 +407,13 @@ export function searchChatMessages(
     limit?: number;
     includeBot?: boolean;
   } = {},
-): Array<{ id: string; content: string; sender_name: string; timestamp: string; is_from_me: boolean }> {
+): Array<{
+  id: string;
+  content: string;
+  sender_name: string;
+  timestamp: string;
+  is_from_me: boolean;
+}> {
   const conditions: string[] = ['chat_jid = ?'];
   const params: any[] = [chatJid];
 
@@ -413,9 +446,7 @@ export function searchChatMessages(
     timestamp: string;
     is_from_me: number;
   }>;
-  return rows
-    .map((r) => ({ ...r, is_from_me: !!r.is_from_me }))
-    .reverse(); // chronological order for readability
+  return rows.map((r) => ({ ...r, is_from_me: !!r.is_from_me })).reverse(); // chronological order for readability
 }
 
 export function getNewMessages(
@@ -695,12 +726,16 @@ export function getRegisteredGroup(
     folder: row.folder,
     trigger: row.trigger_pattern,
     added_at: row.added_at,
-    containerConfig: safeJsonParse(row.container_config, row.jid, 'container_config'),
+    containerConfig: safeJsonParse(
+      row.container_config,
+      row.jid,
+      'container_config',
+    ),
     requiresTrigger:
       row.requires_trigger === null ? undefined : row.requires_trigger === 1,
     isMain: row.is_main === 1 ? true : undefined,
     agentConfig: safeJsonParse(row.agent_config, row.jid, 'agent_config'),
-    runtime: row.runtime as RegisteredGroup['runtime'] || undefined,
+    runtime: (row.runtime as RegisteredGroup['runtime']) || undefined,
   };
 }
 
@@ -752,12 +787,16 @@ export function getAllRegisteredGroups(): Record<string, RegisteredGroup> {
       folder: row.folder,
       trigger: row.trigger_pattern,
       added_at: row.added_at,
-      containerConfig: safeJsonParse(row.container_config, row.jid, 'container_config'),
+      containerConfig: safeJsonParse(
+        row.container_config,
+        row.jid,
+        'container_config',
+      ),
       requiresTrigger:
         row.requires_trigger === null ? undefined : row.requires_trigger === 1,
       isMain: row.is_main === 1 ? true : undefined,
       agentConfig: safeJsonParse(row.agent_config, row.jid, 'agent_config'),
-      runtime: row.runtime as RegisteredGroup['runtime'] || undefined,
+      runtime: (row.runtime as RegisteredGroup['runtime']) || undefined,
     };
   }
   return result;

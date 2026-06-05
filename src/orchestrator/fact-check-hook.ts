@@ -53,10 +53,17 @@ function findFlags(text: string): FlaggedMatch[] {
   const lines = text.split('\n');
   for (const line of lines) {
     const lowered = line.toLowerCase();
-    const hasEvidence = EVIDENCE_MARKERS.some((m) => lowered.includes(m.toLowerCase()));
+    const hasEvidence = EVIDENCE_MARKERS.some((m) =>
+      lowered.includes(m.toLowerCase()),
+    );
     if (hasEvidence) continue;
     // Skip lines that are clearly code blocks or quoted command output
-    if (line.startsWith('    ') || line.startsWith('\t') || /^[`>]/.test(line.trim())) continue;
+    if (
+      line.startsWith('    ') ||
+      line.startsWith('\t') ||
+      /^[`>]/.test(line.trim())
+    )
+      continue;
     // Skip lines that are mostly a backtick-wrapped command
     const backtickRatio = (line.match(/`/g) || []).length;
     if (backtickRatio >= 2) continue;
@@ -68,20 +75,30 @@ function findFlags(text: string): FlaggedMatch[] {
     }
     const percentMatch = line.match(PERCENT_RE);
     if (percentMatch) {
-      flags.push({ line: line.trim(), pattern: 'percent', match: percentMatch[0] });
+      flags.push({
+        line: line.trim(),
+        pattern: 'percent',
+        match: percentMatch[0],
+      });
       continue;
     }
     // Version match is noisy (dates, IPs); only flag if line also mentions a product-like word
     const versionMatch = line.match(VERSION_RE);
     if (versionMatch && /\b(version|версия|v\d|release|релиз)\b/i.test(line)) {
-      flags.push({ line: line.trim(), pattern: 'version', match: versionMatch[0] });
+      flags.push({
+        line: line.trim(),
+        pattern: 'version',
+        match: versionMatch[0],
+      });
     }
   }
   return flags;
 }
 
 export function createFactCheckHook(groupsDir: string): OutboundPreHook {
-  return async (envelope: OutboundEnvelope): Promise<HookResult<OutboundEnvelope>> => {
+  return async (
+    envelope: OutboundEnvelope,
+  ): Promise<HookResult<OutboundEnvelope>> => {
     if (envelope.triggerType !== 'agent-response') {
       return { action: 'continue' };
     }
@@ -123,11 +140,18 @@ export function createFactCheckHook(groupsDir: string): OutboundPreHook {
       ].join('\n');
       fs.appendFileSync(suspectFile, block);
       logger.debug(
-        { groupFolder: envelope.groupFolder, flagCount: flags.length, patterns: flags.map((f) => f.pattern) },
+        {
+          groupFolder: envelope.groupFolder,
+          flagCount: flags.length,
+          patterns: flags.map((f) => f.pattern),
+        },
         'fact-check-hook flagged outbound message',
       );
     } catch (err) {
-      logger.warn({ err }, 'fact-check-hook failed to write suspect log (continuing)');
+      logger.warn(
+        { err },
+        'fact-check-hook failed to write suspect log (continuing)',
+      );
     }
 
     return { action: 'continue' };

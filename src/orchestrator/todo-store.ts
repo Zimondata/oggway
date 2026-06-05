@@ -96,7 +96,11 @@ export function setTodos(
     if (update.id !== undefined && merge) {
       const idx = file.todos.findIndex((t) => t.id === update.id);
       if (idx >= 0) {
-        if (st === 'in_progress' && existingInProgress && existingInProgress.id !== update.id) {
+        if (
+          st === 'in_progress' &&
+          existingInProgress &&
+          existingInProgress.id !== update.id
+        ) {
           // demote previous in_progress to pending
           existingInProgress.status = 'pending';
           existingInProgress.updated_at = now;
@@ -156,7 +160,9 @@ export function formatForInjection(groupDir: string): string | null {
     completed: '[x]',
     cancelled: '[-]',
   };
-  const lines = ['[Your active task list was preserved across context compression]'];
+  const lines = [
+    '[Your active task list was preserved across context compression]',
+  ];
   active.forEach((t, idx) => {
     lines.push(`- ${markers[t.status]} ${idx + 1}. ${t.content} (${t.status})`);
   });

@@ -26,7 +26,13 @@ import { NewMessage } from './types.js';
 const execFileP = promisify(execFile);
 
 const YT_SCRIPT = (groupFolder: string) =>
-  path.join(GROUPS_DIR, groupFolder, 'memory', 'scripts', 'transcribe-youtube.py');
+  path.join(
+    GROUPS_DIR,
+    groupFolder,
+    'memory',
+    'scripts',
+    'transcribe-youtube.py',
+  );
 
 const YT_URL_RE =
   /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+)[^\s)]*/g;
@@ -95,8 +101,7 @@ export async function enrichMessage(
   );
 
   return {
-    modifiedContent:
-      `${msg.content}\n\n${note}\n\n--- BEGIN TRANSCRIPT ---\n${truncated}\n--- END TRANSCRIPT ---`,
+    modifiedContent: `${msg.content}\n\n${note}\n\n--- BEGIN TRANSCRIPT ---\n${truncated}\n--- END TRANSCRIPT ---`,
     enrichmentNote: note,
   };
 }

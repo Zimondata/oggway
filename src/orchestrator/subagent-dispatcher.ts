@@ -80,7 +80,13 @@ function resultPath(parentFolder: string, subagentId: string): string {
 function writeResult(
   parentFolder: string,
   subagentId: string,
-  payload: { status: 'success' | 'error'; output: string; error?: string; durationMs: number; turns?: number },
+  payload: {
+    status: 'success' | 'error';
+    output: string;
+    error?: string;
+    durationMs: number;
+    turns?: number;
+  },
 ): void {
   const file = resultPath(parentFolder, subagentId);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -117,10 +123,12 @@ export async function dispatchSubagent(
   const runtime = parent.runtime || DEFAULT_RUNTIME;
   const queueKey = subagentQueueKey(request.parentChatJid, request.subagentId);
 
-  const routedModel = request.model ?? selectModel(
-    request.prompt,
-    { groupFolder: parent.folder, taskId: `sub-${request.subagentId}` },
-  );
+  const routedModel =
+    request.model ??
+    selectModel(request.prompt, {
+      groupFolder: parent.folder,
+      taskId: `sub-${request.subagentId}`,
+    });
 
   const mergedAgentConfig: AgentConfig = {
     ...parent.agentConfig,
@@ -192,14 +200,29 @@ export async function dispatchSubagent(
       'Subagent timeout — killing',
     );
     if (activeProc && !activeProc.killed) {
-      try { activeProc.kill('SIGKILL'); } catch { /* already gone */ }
+      try {
+        activeProc.kill('SIGKILL');
+      } catch {
+        /* already gone */
+      }
     }
   }, timeoutMs);
 
   try {
-    const output = runtime === 'sandbox'
-      ? await runSandboxAgent(subagentGroup, agentInput, onProcessCb, onStreamed)
-      : await runContainerAgent(subagentGroup, agentInput, onProcessCb, onStreamed);
+    const output =
+      runtime === 'sandbox'
+        ? await runSandboxAgent(
+            subagentGroup,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          )
+        : await runContainerAgent(
+            subagentGroup,
+            agentInput,
+            onProcessCb,
+            onStreamed,
+          );
     if (output.status === 'error') {
       error = error ?? output.error ?? 'Unknown error';
     } else if (output.result) {

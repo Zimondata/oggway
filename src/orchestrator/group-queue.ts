@@ -102,8 +102,14 @@ export class GroupQueue {
 
     if (state.active) {
       // Safety net: force-clear stale active state
-      if (state.activeStartedAt && Date.now() - state.activeStartedAt > STALE_ACTIVE_MS) {
-        logger.warn({ groupJid, staleSinceMs: Date.now() - state.activeStartedAt }, 'Force-clearing stale active group');
+      if (
+        state.activeStartedAt &&
+        Date.now() - state.activeStartedAt > STALE_ACTIVE_MS
+      ) {
+        logger.warn(
+          { groupJid, staleSinceMs: Date.now() - state.activeStartedAt },
+          'Force-clearing stale active group',
+        );
         state.active = false;
         state.activeStartedAt = null;
         state.process = null;
@@ -222,11 +228,17 @@ export class GroupQueue {
         if (proc.pid) process.kill(-proc.pid, 'SIGKILL');
       } catch (err) {
         // Fallback: try direct kill if process group kill failed
-        logger.warn({ err: (err as Error).message, groupJid }, 'Process-group SIGKILL failed, trying direct kill');
+        logger.warn(
+          { err: (err as Error).message, groupJid },
+          'Process-group SIGKILL failed, trying direct kill',
+        );
         try {
           proc.kill('SIGKILL');
         } catch (err2) {
-          logger.warn({ err: (err2 as Error).message, groupJid }, 'Direct SIGKILL also failed');
+          logger.warn(
+            { err: (err2 as Error).message, groupJid },
+            'Direct SIGKILL also failed',
+          );
         }
       }
     }, RUN_WATCHDOG_CHECK_MS);
@@ -271,7 +283,8 @@ export class GroupQueue {
 
   sendMessage(groupJid: string, text: string): boolean {
     const state = this.getGroup(groupJid);
-    if (!state.active || !state.groupFolder || state.isTaskContainer) return false;
+    if (!state.active || !state.groupFolder || state.isTaskContainer)
+      return false;
     state.idleWaiting = false;
 
     const inputDir = path.join(DATA_DIR, 'ipc', state.groupFolder, 'input');
@@ -388,7 +401,10 @@ export class GroupQueue {
       return;
     }
     const delayMs = BASE_RETRY_MS * Math.pow(2, state.retryCount - 1);
-    logger.info({ groupJid, retryCount: state.retryCount, delayMs }, 'Retry scheduled');
+    logger.info(
+      { groupJid, retryCount: state.retryCount, delayMs },
+      'Retry scheduled',
+    );
     setTimeout(() => {
       if (!this.shuttingDown) this.enqueueMessageCheck(groupJid);
     }, delayMs);
@@ -423,7 +439,10 @@ export class GroupQueue {
     if (this.checkPendingFn) {
       try {
         if (this.checkPendingFn(groupJid)) {
-          logger.info({ groupJid }, 'Safety net: DB has unprocessed messages after drain');
+          logger.info(
+            { groupJid },
+            'Safety net: DB has unprocessed messages after drain',
+          );
           this.runForGroup(groupJid, 'drain').catch((err) =>
             logger.error({ groupJid, err }, 'Error in safety-net drain'),
           );

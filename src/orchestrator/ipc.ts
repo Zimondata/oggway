@@ -100,7 +100,11 @@ export function startIpcWatcher(deps: IpcDeps): void {
                     'Unauthorized IPC message attempt blocked',
                   );
                 }
-              } else if (data.type === 'document' && data.chatJid && data.filePath) {
+              } else if (
+                data.type === 'document' &&
+                data.chatJid &&
+                data.filePath
+              ) {
                 // Send a file (markdown, PDF, etc) as Telegram document
                 const targetGroup = registeredGroups[data.chatJid];
                 if (
@@ -108,11 +112,18 @@ export function startIpcWatcher(deps: IpcDeps): void {
                   (targetGroup && targetGroup.folder === sourceGroup)
                 ) {
                   const channel = deps.channels?.find(
-                    (c) => c.ownsJid(data.chatJid) && c.isConnected() && c.sendDocument,
+                    (c) =>
+                      c.ownsJid(data.chatJid) &&
+                      c.isConnected() &&
+                      c.sendDocument,
                   );
                   if (!channel?.sendDocument) {
                     logger.warn(
-                      { chatJid: data.chatJid, sourceGroup, filePath: data.filePath },
+                      {
+                        chatJid: data.chatJid,
+                        sourceGroup,
+                        filePath: data.filePath,
+                      },
                       'IPC document: channel does not support sendDocument',
                     );
                   } else {
@@ -123,12 +134,20 @@ export function startIpcWatcher(deps: IpcDeps): void {
                         data.caption,
                       );
                       logger.info(
-                        { chatJid: data.chatJid, sourceGroup, filePath: data.filePath },
+                        {
+                          chatJid: data.chatJid,
+                          sourceGroup,
+                          filePath: data.filePath,
+                        },
                         'IPC document sent',
                       );
                     } catch (sendErr) {
                       logger.error(
-                        { err: sendErr, chatJid: data.chatJid, filePath: data.filePath },
+                        {
+                          err: sendErr,
+                          chatJid: data.chatJid,
+                          filePath: data.filePath,
+                        },
                         'IPC document send failed',
                       );
                     }
@@ -547,16 +566,28 @@ export async function processTaskIpc(
         );
         break;
       }
-      if (!data.subagentId || !data.prompt || !data.parentGroupFolder || !data.parentChatJid) {
-        logger.warn({ sourceGroup }, 'delegate_task IPC missing required fields');
+      if (
+        !data.subagentId ||
+        !data.prompt ||
+        !data.parentGroupFolder ||
+        !data.parentChatJid
+      ) {
+        logger.warn(
+          { sourceGroup },
+          'delegate_task IPC missing required fields',
+        );
         break;
       }
       // Spawn subagent on its own queue lane so it doesn't block interactive
       // messages or cron tasks.
       void (async () => {
         try {
-          const { dispatchSubagent, subagentQueueKey } = await import('./subagent-dispatcher.js');
-          const queueKey = subagentQueueKey(data.parentChatJid!, data.subagentId!);
+          const { dispatchSubagent, subagentQueueKey } =
+            await import('./subagent-dispatcher.js');
+          const queueKey = subagentQueueKey(
+            data.parentChatJid!,
+            data.subagentId!,
+          );
           deps.queue.enqueueTask(queueKey, `subagent-${data.subagentId}`, () =>
             dispatchSubagent(
               {
@@ -585,7 +616,10 @@ export async function processTaskIpc(
             ),
           );
         } catch (err) {
-          logger.error({ err, subagentId: data.subagentId }, 'Failed to dispatch subagent');
+          logger.error(
+            { err, subagentId: data.subagentId },
+            'Failed to dispatch subagent',
+          );
         }
       })();
       break;
@@ -607,11 +641,17 @@ export async function processTaskIpc(
       try {
         const fs = await import('fs');
         if (fs.existsSync(RESTART_LOCK_FILE)) {
-          const last = Number(fs.readFileSync(RESTART_LOCK_FILE, 'utf-8').trim()) || 0;
+          const last =
+            Number(fs.readFileSync(RESTART_LOCK_FILE, 'utf-8').trim()) || 0;
           const sinceMs = Date.now() - last;
           if (sinceMs < RESTART_COOLDOWN_MS) {
             logger.warn(
-              { sourceGroup, reason: data.reason, sinceMs, cooldownMs: RESTART_COOLDOWN_MS },
+              {
+                sourceGroup,
+                reason: data.reason,
+                sinceMs,
+                cooldownMs: RESTART_COOLDOWN_MS,
+              },
               'Self-restart blocked by cooldown — refusing to bury the service',
             );
             break;
@@ -649,7 +689,10 @@ export async function processTaskIpc(
           if (data.rebuild !== false) {
             const { execSync } = await import('child_process');
             const { CODE_ROOT } = await import('./config.js');
-            logger.info({ cwd: CODE_ROOT }, 'Running npm run build before restart');
+            logger.info(
+              { cwd: CODE_ROOT },
+              'Running npm run build before restart',
+            );
             execSync('npm run build', { stdio: 'inherit', cwd: CODE_ROOT });
           }
         } catch (err) {
@@ -673,7 +716,8 @@ export async function processTaskIpc(
       if (handler) {
         // Extension IPC handlers expect { sendMessage } — proxy through router
         await handler(data, sourceGroup, isMain, {
-          sendMessage: (jid: string, text: string) => deps.router.send(jid, text),
+          sendMessage: (jid: string, text: string) =>
+            deps.router.send(jid, text),
         });
       } else {
         logger.warn({ type: data.type }, 'Unknown IPC task type');

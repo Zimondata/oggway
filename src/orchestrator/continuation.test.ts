@@ -41,7 +41,9 @@ describe('Auto-continuation on context overflow', () => {
   it('counter increments up to MAX and blocks further continuations', () => {
     const folder = 'test-folder-max';
     for (let i = 0; i < _MAX_AUTO_CONTINUATIONS; i++) {
-      expect(_getContinuationCount(folder) < _MAX_AUTO_CONTINUATIONS).toBe(true);
+      expect(_getContinuationCount(folder) < _MAX_AUTO_CONTINUATIONS).toBe(
+        true,
+      );
       _setContinuationCount(folder, _getContinuationCount(folder) + 1);
     }
     // At MAX - no more continuations allowed

@@ -5,7 +5,10 @@ import { Api, Bot, GrammyError } from 'grammy';
 import { ASSISTANT_NAME, TRIGGER_PATTERN } from '../orchestrator/config.js';
 import { readEnvFile } from '../orchestrator/env.js';
 import { logger } from '../orchestrator/logger.js';
-import { registerChannel, ChannelOpts } from '../orchestrator/channel-registry.js';
+import {
+  registerChannel,
+  ChannelOpts,
+} from '../orchestrator/channel-registry.js';
 import {
   Channel,
   OnChatMetadata,
@@ -83,7 +86,8 @@ function buildReplyPrefix(replyTo: any, chatJid: string): string {
     original =
       (replyTo.voice && '[voice message — transcript not stored yet]') ||
       (replyTo.photo && '[photo]') ||
-      (replyTo.document && `[document: ${replyTo.document.file_name || 'file'}]`) ||
+      (replyTo.document &&
+        `[document: ${replyTo.document.file_name || 'file'}]`) ||
       (replyTo.video && '[video]') ||
       (replyTo.audio && '[audio]') ||
       '[message]';
@@ -123,20 +127,32 @@ async function sendTelegramMessage(
     } catch (err) {
       const retryAfter = floodRetryAfter(err);
       if (retryAfter !== null && attempt < 3) {
-        logger.warn({ chatId, retryAfter }, 'Telegram 429 flood control, retrying after delay');
+        logger.warn(
+          { chatId, retryAfter },
+          'Telegram 429 flood control, retrying after delay',
+        );
         await sleep(retryAfter * 1000 + 500);
         continue;
       }
       if (parseMode && isParseError(err)) {
-        logger.debug({ err }, 'Markdown send failed, falling back to plain text');
+        logger.debug(
+          { err },
+          'Markdown send failed, falling back to plain text',
+        );
         parseMode = undefined;
         continue;
       }
-      logger.error({ err, chatId }, 'Telegram sendMessage failed — message lost');
+      logger.error(
+        { err, chatId },
+        'Telegram sendMessage failed — message lost',
+      );
       return null;
     }
   }
-  logger.error({ chatId }, 'Telegram sendMessage exhausted retries — message lost');
+  logger.error(
+    { chatId },
+    'Telegram sendMessage exhausted retries — message lost',
+  );
   return null;
 }
 
@@ -156,7 +172,10 @@ async function editTelegramMessage(
     } catch (err) {
       const retryAfter = floodRetryAfter(err);
       if (retryAfter !== null && attempt < 3) {
-        logger.warn({ chatId, messageId, retryAfter }, 'Telegram 429 on edit, retrying after delay');
+        logger.warn(
+          { chatId, messageId, retryAfter },
+          'Telegram 429 on edit, retrying after delay',
+        );
         await sleep(retryAfter * 1000 + 500);
         continue;
       }
@@ -168,7 +187,10 @@ async function editTelegramMessage(
         parseMode = undefined;
         continue;
       }
-      logger.debug({ err: msg, chatId, messageId }, 'Telegram editMessageText failed');
+      logger.debug(
+        { err: msg, chatId, messageId },
+        'Telegram editMessageText failed',
+      );
       return;
     }
   }
@@ -198,45 +220,54 @@ export class TelegramChannel implements Channel {
     // gets dropped (forwards, stories, polls, etc.) when handler routing
     // misses. Keeps the line short to not flood the log.
     // Guard for test mocks that don't implement .use().
-    if (typeof (this.bot as any).use === 'function') this.bot.use(async (ctx, next) => {
-      try {
-        const u: any = ctx.update;
-        const m = u?.message || u?.edited_message || u?.channel_post;
-        if (m) {
-          const fields: string[] = [];
-          if (m.text) fields.push(`text:${String(m.text).length}c`);
-          if (m.caption) fields.push(`caption:${String(m.caption).length}c`);
-          if (m.photo) fields.push('photo');
-          if (m.video) fields.push('video');
-          if (m.video_note) fields.push('video_note');
-          if (m.voice) fields.push('voice');
-          if (m.audio) fields.push('audio');
-          if (m.document) fields.push(`doc:${m.document.file_name || m.document.mime_type || '?'}`);
-          if (m.sticker) fields.push('sticker');
-          if (m.animation) fields.push('animation');
-          if (m.location) fields.push('location');
-          if (m.contact) fields.push('contact');
-          if (m.poll) fields.push('poll');
-          if (m.story) fields.push('story');
-          if (m.dice) fields.push('dice');
-          if (m.venue) fields.push('venue');
-          if (m.forward_origin) fields.push(`forward:${m.forward_origin.type || '?'}`);
-          if (m.reply_to_message) fields.push('reply');
-          if (m.via_bot) fields.push(`via_bot:${m.via_bot.username}`);
-          if (fields.length === 0) fields.push('UNKNOWN');
-          logger.info(
-            { chatId: m.chat?.id, from: m.from?.username || m.from?.id, kinds: fields.join(',') },
-            'TG update received',
-          );
-        } else if (u) {
-          const updateKinds = Object.keys(u).filter((k) => k !== 'update_id');
-          logger.info({ updateKinds }, 'TG non-message update received');
+    if (typeof (this.bot as any).use === 'function')
+      this.bot.use(async (ctx, next) => {
+        try {
+          const u: any = ctx.update;
+          const m = u?.message || u?.edited_message || u?.channel_post;
+          if (m) {
+            const fields: string[] = [];
+            if (m.text) fields.push(`text:${String(m.text).length}c`);
+            if (m.caption) fields.push(`caption:${String(m.caption).length}c`);
+            if (m.photo) fields.push('photo');
+            if (m.video) fields.push('video');
+            if (m.video_note) fields.push('video_note');
+            if (m.voice) fields.push('voice');
+            if (m.audio) fields.push('audio');
+            if (m.document)
+              fields.push(
+                `doc:${m.document.file_name || m.document.mime_type || '?'}`,
+              );
+            if (m.sticker) fields.push('sticker');
+            if (m.animation) fields.push('animation');
+            if (m.location) fields.push('location');
+            if (m.contact) fields.push('contact');
+            if (m.poll) fields.push('poll');
+            if (m.story) fields.push('story');
+            if (m.dice) fields.push('dice');
+            if (m.venue) fields.push('venue');
+            if (m.forward_origin)
+              fields.push(`forward:${m.forward_origin.type || '?'}`);
+            if (m.reply_to_message) fields.push('reply');
+            if (m.via_bot) fields.push(`via_bot:${m.via_bot.username}`);
+            if (fields.length === 0) fields.push('UNKNOWN');
+            logger.info(
+              {
+                chatId: m.chat?.id,
+                from: m.from?.username || m.from?.id,
+                kinds: fields.join(','),
+              },
+              'TG update received',
+            );
+          } else if (u) {
+            const updateKinds = Object.keys(u).filter((k) => k !== 'update_id');
+            logger.info({ updateKinds }, 'TG non-message update received');
+          }
+        } catch (err) {
+          logger.debug({ err }, 'TG diagnostic middleware error');
         }
-      } catch (err) {
-        logger.debug({ err }, 'TG diagnostic middleware error');
-      }
-      await next();
-    });
+        await next();
+      });
 
     // Command to get chat ID (useful for registration)
     this.bot.command('chatid', (ctx) => {
@@ -275,10 +306,12 @@ export class TelegramChannel implements Channel {
           chunks.push(reply.slice(i, i + 3800));
         }
         for (const chunk of chunks) {
-          await ctx.reply(`\`\`\`\n${chunk}\n\`\`\``, { parse_mode: 'Markdown' }).catch(async () => {
-            // Fallback to plain text if markdown escaping fails
-            await ctx.reply(chunk);
-          });
+          await ctx
+            .reply(`\`\`\`\n${chunk}\n\`\`\``, { parse_mode: 'Markdown' })
+            .catch(async () => {
+              // Fallback to plain text if markdown escaping fails
+              await ctx.reply(chunk);
+            });
         }
         return;
       }
@@ -301,7 +334,10 @@ export class TelegramChannel implements Channel {
       // (transcript, OCR, file path) from DB instead of the "[voice message]"
       // placeholder — that's what OpenClaude does and what makes "I'm replying
       // to that voice" work.
-      const replyPrefix = buildReplyPrefix(ctx.message.reply_to_message, chatJid);
+      const replyPrefix = buildReplyPrefix(
+        ctx.message.reply_to_message,
+        chatJid,
+      );
       if (replyPrefix) content = `${replyPrefix}${content}`;
 
       const timestamp = new Date(ctx.message.date * 1000).toISOString();
@@ -429,7 +465,10 @@ export class TelegramChannel implements Channel {
         'Unknown';
       const caption = ctx.message.caption ? ` ${ctx.message.caption}` : '';
       const fwd = forwardPrefix(ctx.message);
-      const replyPrefix = buildReplyPrefix(ctx.message.reply_to_message, chatJid);
+      const replyPrefix = buildReplyPrefix(
+        ctx.message.reply_to_message,
+        chatJid,
+      );
 
       const isGroup =
         ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
@@ -464,7 +503,11 @@ export class TelegramChannel implements Channel {
           storeNonText(ctx, fallback);
           return;
         }
-        const localPath = await downloadTelegramFile(this.botToken, file.file_path, suffix);
+        const localPath = await downloadTelegramFile(
+          this.botToken,
+          file.file_path,
+          suffix,
+        );
         if (!localPath) {
           storeNonText(ctx, fallback);
           return;
@@ -472,7 +515,10 @@ export class TelegramChannel implements Channel {
         try {
           const transcript = await transcribeAudio(localPath);
           if (transcript) {
-            logger.info({ mediaKind, length: transcript.length }, 'Telegram audio transcribed');
+            logger.info(
+              { mediaKind, length: transcript.length },
+              'Telegram audio transcribed',
+            );
             storeNonText(ctx, `[${mediaKind}: ${transcript}]`);
           } else {
             storeNonText(ctx, fallback);
@@ -481,7 +527,10 @@ export class TelegramChannel implements Channel {
           cleanupTempFile(localPath);
         }
       } catch (err) {
-        logger.warn({ err: err instanceof Error ? err.message : String(err), mediaKind }, 'Telegram transcription path failed');
+        logger.warn(
+          { err: err instanceof Error ? err.message : String(err), mediaKind },
+          'Telegram transcription path failed',
+        );
         storeNonText(ctx, fallback);
       }
     };
@@ -496,28 +545,67 @@ export class TelegramChannel implements Channel {
           return;
         }
         const ext = file.file_path.split('.').pop() || 'jpg';
-        const localPath = await downloadTelegramFile(this.botToken, file.file_path, `.${ext}`);
+        const localPath = await downloadTelegramFile(
+          this.botToken,
+          file.file_path,
+          `.${ext}`,
+        );
         if (!localPath) {
           storeNonText(ctx, '[Photo]');
           return;
         }
-        logger.info({ localPath, caption: ctx.message.caption }, 'Telegram photo saved');
-        storeNonText(ctx, `[Photo saved to ${localPath} — use Read tool to see it]`);
+        logger.info(
+          { localPath, caption: ctx.message.caption },
+          'Telegram photo saved',
+        );
+        storeNonText(
+          ctx,
+          `[Photo saved to ${localPath} — use Read tool to see it]`,
+        );
       } catch (err) {
-        logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Telegram photo download failed');
+        logger.warn(
+          { err: err instanceof Error ? err.message : String(err) },
+          'Telegram photo download failed',
+        );
         storeNonText(ctx, '[Photo]');
       }
     });
     this.bot.on('message:video', (ctx) => storeNonText(ctx, '[Video]'));
-    this.bot.on('message:voice', (ctx) => transcribeAndStore(ctx, '[Voice message]', '.ogg', 'Voice'));
-    this.bot.on('message:audio', (ctx) => transcribeAndStore(ctx, '[Audio]', '.mp3', 'Audio'));
+    this.bot.on('message:voice', (ctx) =>
+      transcribeAndStore(ctx, '[Voice message]', '.ogg', 'Voice'),
+    );
+    this.bot.on('message:audio', (ctx) =>
+      transcribeAndStore(ctx, '[Audio]', '.mp3', 'Audio'),
+    );
     this.bot.on('message:document', async (ctx) => {
       const name = ctx.message.document?.file_name || 'file';
       const mime = ctx.message.document?.mime_type || '';
       const lowerName = name.toLowerCase();
       const isPdf = mime === 'application/pdf' || lowerName.endsWith('.pdf');
-      const TEXT_EXTS = ['.md', '.txt', '.json', '.csv', '.yaml', '.yml', '.log', '.ts', '.js', '.py', '.rb', '.go', '.rs', '.php', '.html', '.css', '.sh', '.sql'];
-      const isText = !isPdf && (mime.startsWith('text/') || TEXT_EXTS.some((e) => lowerName.endsWith(e)));
+      const TEXT_EXTS = [
+        '.md',
+        '.txt',
+        '.json',
+        '.csv',
+        '.yaml',
+        '.yml',
+        '.log',
+        '.ts',
+        '.js',
+        '.py',
+        '.rb',
+        '.go',
+        '.rs',
+        '.php',
+        '.html',
+        '.css',
+        '.sh',
+        '.sql',
+      ];
+      const isText =
+        !isPdf &&
+        (mime.startsWith('text/') ||
+          TEXT_EXTS.some((e) => lowerName.endsWith(e)));
       if (!isPdf && !isText) {
         storeNonText(ctx, `[Document: ${name}]`);
         return;
@@ -529,7 +617,11 @@ export class TelegramChannel implements Channel {
           return;
         }
         if (isPdf) {
-          const localPath = await downloadTelegramFile(this.botToken, file.file_path, '.pdf');
+          const localPath = await downloadTelegramFile(
+            this.botToken,
+            file.file_path,
+            '.pdf',
+          );
           if (!localPath) {
             storeNonText(ctx, `[Document: ${name}]`);
             return;
@@ -537,7 +629,10 @@ export class TelegramChannel implements Channel {
           try {
             const text = await extractPdfText(localPath);
             if (text) {
-              logger.info({ name, length: text.length }, 'Telegram PDF extracted');
+              logger.info(
+                { name, length: text.length },
+                'Telegram PDF extracted',
+              );
               storeNonText(ctx, `[PDF: ${name}]\n${text}`);
             } else {
               storeNonText(ctx, `[Document: ${name}]`);
@@ -548,7 +643,11 @@ export class TelegramChannel implements Channel {
         } else {
           const dotIdx = lowerName.lastIndexOf('.');
           const ext = dotIdx >= 0 ? lowerName.slice(dotIdx) : '.txt';
-          const localPath = await downloadTelegramFile(this.botToken, file.file_path, ext);
+          const localPath = await downloadTelegramFile(
+            this.botToken,
+            file.file_path,
+            ext,
+          );
           if (!localPath) {
             storeNonText(ctx, `[Document: ${name}]`);
             return;
@@ -565,7 +664,10 @@ export class TelegramChannel implements Channel {
               if (stat.size > MAX_BYTES) {
                 text += `\n\n[truncated: file is ${stat.size} bytes, showing first ${MAX_BYTES}]`;
               }
-              logger.info({ name, length: text.length, fullSize: stat.size }, 'Telegram text document inlined');
+              logger.info(
+                { name, length: text.length, fullSize: stat.size },
+                'Telegram text document inlined',
+              );
               storeNonText(ctx, `[Document: ${name}]\n${text}`);
             } finally {
               fs.closeSync(fd);
@@ -575,7 +677,10 @@ export class TelegramChannel implements Channel {
           }
         }
       } catch (err) {
-        logger.warn({ err: err instanceof Error ? err.message : String(err), name }, 'Telegram document path failed');
+        logger.warn(
+          { err: err instanceof Error ? err.message : String(err), name },
+          'Telegram document path failed',
+        );
         storeNonText(ctx, `[Document: ${name}]`);
       }
     });
@@ -585,11 +690,17 @@ export class TelegramChannel implements Channel {
     });
     this.bot.on('message:location', (ctx) => storeNonText(ctx, '[Location]'));
     this.bot.on('message:contact', (ctx) => storeNonText(ctx, '[Contact]'));
-    this.bot.on('message:video_note', (ctx) => transcribeAndStore(ctx, '[Video note (round)]', '.mp4', 'Video note'));
-    this.bot.on('message:animation', (ctx) => storeNonText(ctx, '[Animation/GIF]'));
+    this.bot.on('message:video_note', (ctx) =>
+      transcribeAndStore(ctx, '[Video note (round)]', '.mp4', 'Video note'),
+    );
+    this.bot.on('message:animation', (ctx) =>
+      storeNonText(ctx, '[Animation/GIF]'),
+    );
     this.bot.on('message:poll', (ctx) => {
       const q = ctx.message.poll?.question || '';
-      const opts = (ctx.message.poll?.options || []).map((o: any) => `- ${o.text}`).join('\n');
+      const opts = (ctx.message.poll?.options || [])
+        .map((o: any) => `- ${o.text}`)
+        .join('\n');
       storeNonText(ctx, `[Poll: ${q}\n${opts}]`);
     });
     this.bot.on('message:dice', (ctx) => {
@@ -608,8 +719,8 @@ export class TelegramChannel implements Channel {
         origin?.type === 'channel'
           ? `канал ${origin?.chat?.title || origin?.chat?.username || '?'}`
           : origin?.type === 'user'
-          ? `${origin?.sender_user?.first_name || origin?.sender_user?.username || '?'}`
-          : 'неизвестный';
+            ? `${origin?.sender_user?.first_name || origin?.sender_user?.username || '?'}`
+            : 'неизвестный';
       storeNonText(ctx, `[Story forwarded from ${tag}]`);
     });
     // Catch-all fallback: any message that didn't match a specific handler
@@ -620,14 +731,36 @@ export class TelegramChannel implements Channel {
       // bot at least acknowledged something arrived.
       const fields: string[] = [];
       if (m.text) return; // already handled by message:text
-      if (m.photo || m.video || m.voice || m.audio || m.document || m.sticker
-        || m.location || m.contact || m.video_note || m.animation || m.poll
-        || m.dice || m.venue || m.story) return; // already handled
+      if (
+        m.photo ||
+        m.video ||
+        m.voice ||
+        m.audio ||
+        m.document ||
+        m.sticker ||
+        m.location ||
+        m.contact ||
+        m.video_note ||
+        m.animation ||
+        m.poll ||
+        m.dice ||
+        m.venue ||
+        m.story
+      )
+        return; // already handled
       if (m.caption) fields.push(`caption: ${m.caption.slice(0, 200)}`);
       if (m.via_bot) fields.push(`via @${m.via_bot.username}`);
-      if (m.forward_origin) fields.push(`forwarded from ${m.forward_origin?.chat?.title || m.forward_origin?.sender_user?.first_name || m.forward_origin?.type}`);
-      const desc = fields.length ? fields.join(' | ') : 'unknown TG message type';
-      logger.warn({ messageId: m.message_id, chatId: m.chat?.id }, `Unhandled TG message: ${desc}`);
+      if (m.forward_origin)
+        fields.push(
+          `forwarded from ${m.forward_origin?.chat?.title || m.forward_origin?.sender_user?.first_name || m.forward_origin?.type}`,
+        );
+      const desc = fields.length
+        ? fields.join(' | ')
+        : 'unknown TG message type';
+      logger.warn(
+        { messageId: m.message_id, chatId: m.chat?.id },
+        `Unhandled TG message: ${desc}`,
+      );
       storeNonText(ctx, `[Unhandled TG message: ${desc}]`);
     });
 
@@ -662,7 +795,10 @@ export class TelegramChannel implements Channel {
     });
   }
 
-  async sendMessage(jid: string, text: string): Promise<{ messageId?: number } | void> {
+  async sendMessage(
+    jid: string,
+    text: string,
+  ): Promise<{ messageId?: number } | void> {
     if (!this.bot) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -691,17 +827,26 @@ export class TelegramChannel implements Channel {
         }
       }
       if (anyFailed) {
-        logger.error({ jid, length: text.length }, 'Telegram message FAILED to deliver');
+        logger.error(
+          { jid, length: text.length },
+          'Telegram message FAILED to deliver',
+        );
       } else {
         logger.info({ jid, length: text.length }, 'Telegram message sent');
       }
-      return firstMessageId !== undefined ? { messageId: firstMessageId } : undefined;
+      return firstMessageId !== undefined
+        ? { messageId: firstMessageId }
+        : undefined;
     } catch (err) {
       logger.error({ jid, err }, 'Failed to send Telegram message');
     }
   }
 
-  async sendDocument(jid: string, filePath: string, caption?: string): Promise<void> {
+  async sendDocument(
+    jid: string,
+    filePath: string,
+    caption?: string,
+  ): Promise<void> {
     if (!this.bot) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -714,7 +859,11 @@ export class TelegramChannel implements Channel {
     try {
       const { InputFile } = await import('grammy');
       const file = new InputFile(filePath);
-      await this.bot.api.sendDocument(numericId, file, caption ? { caption } : {});
+      await this.bot.api.sendDocument(
+        numericId,
+        file,
+        caption ? { caption } : {},
+      );
       logger.info({ jid, filePath }, 'Telegram document sent');
     } catch (err) {
       logger.error({ jid, filePath, err }, 'Failed to send Telegram document');
@@ -722,19 +871,27 @@ export class TelegramChannel implements Channel {
     }
   }
 
-  async editMessage(jid: string, messageId: string | number, text: string): Promise<void> {
+  async editMessage(
+    jid: string,
+    messageId: string | number,
+    text: string,
+  ): Promise<void> {
     if (!this.bot) {
       logger.warn('Telegram bot not initialized');
       return;
     }
     const numericId = jid.replace(/^tg:/, '');
-    const numMsgId = typeof messageId === 'string' ? parseInt(messageId, 10) : messageId;
+    const numMsgId =
+      typeof messageId === 'string' ? parseInt(messageId, 10) : messageId;
     if (!Number.isFinite(numMsgId)) return;
     // Telegram editMessageText also has 4096 char limit. For longer streams
     // we keep the visible draft below the cap and emit overflow as a NEW
     // message at flush time (handled by the streaming caller).
     const MAX_LENGTH = 4096;
-    const trimmed = text.length > MAX_LENGTH ? text.slice(0, MAX_LENGTH - 30) + '\n…(continues below)' : text;
+    const trimmed =
+      text.length > MAX_LENGTH
+        ? text.slice(0, MAX_LENGTH - 30) + '\n…(continues below)'
+        : text;
     await editTelegramMessage(this.bot.api, numericId, numMsgId, trimmed);
   }
 

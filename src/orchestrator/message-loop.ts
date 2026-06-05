@@ -77,10 +77,19 @@ import {
   shouldDropMessage,
 } from './sender-allowlist.js';
 import { startSchedulerLoop } from './task-scheduler.js';
-import { callExtensionStartup, getExtensionDbSchema, wireExtensionHooks } from './extensions.js';
+import {
+  callExtensionStartup,
+  getExtensionDbSchema,
+  wireExtensionHooks,
+} from './extensions.js';
 // Load plugins (self-registering on import)
 // Extensions loaded from src/index.ts;
-import { Channel, MessageRouter, NewMessage, RegisteredGroup } from './types.js';
+import {
+  Channel,
+  MessageRouter,
+  NewMessage,
+  RegisteredGroup,
+} from './types.js';
 import { logger } from './logger.js';
 import { logAgentRun, logAgentTurns } from '../cost-tracking/index.js';
 import {
@@ -119,7 +128,10 @@ const lastReflectionTime: Record<string, number> = {};
 // When the bot recovers from a recent failure (rate-limit cleared, sandbox
 // restart, retry success), brag to the user once. Pattern: Hermes-style
 // "look I fixed myself" — turns a frustrating outage into proof of autonomy.
-const recoveryCelebrationOwed: Record<string, { reason: string; sinceMs: number }> = {};
+const recoveryCelebrationOwed: Record<
+  string,
+  { reason: string; sinceMs: number }
+> = {};
 const recoveryBragMessages = [
   'Ну вот, я разобралась. Лимит на opus отлип, сама подняла себя обратно.',
   'Перебдела. Сама перезапустилась, теперь снова в игре.',
@@ -169,7 +181,10 @@ function loadState(): void {
       // Clear markers after recovery
       setRouterState('in_progress_cursors', '{}');
     } catch (err) {
-      logger.warn({ err }, 'Failed to parse in_progress_cursors, skipping recovery');
+      logger.warn(
+        { err },
+        'Failed to parse in_progress_cursors, skipping recovery',
+      );
     }
   }
 
@@ -191,7 +206,10 @@ function loadState(): void {
         try {
           deleteSession(folder);
         } catch (err) {
-          logger.debug({ err: err instanceof Error ? err.message : String(err), folder }, 'Failed to delete tainted session');
+          logger.debug(
+            { err: err instanceof Error ? err.message : String(err), folder },
+            'Failed to delete tainted session',
+          );
         }
       }
     }
@@ -300,7 +318,10 @@ export function _setRegisteredGroups(
  * Process all pending messages for a group.
  * Called by the GroupQueue when it's this group's turn.
  */
-async function processGroupMessages(chatJid: string, router: MessageRouter): Promise<boolean> {
+async function processGroupMessages(
+  chatJid: string,
+  router: MessageRouter,
+): Promise<boolean> {
   // Refresh from DB so direct SQL updates to agent_config (e.g. allowedDomains)
   // take effect on the next agent spawn without requiring a service restart.
   const fresh = getRegisteredGroup(chatJid);
@@ -352,9 +373,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
   // or containing "новая тема" / "забудь контекст" forces a fresh session
   // before the next agent run. Helps when the agent is dragging stale
   // context across topic shifts.
-  const resetTriggerPattern = /^\s*\/(reset|новая)\b|новая тема|забудь контекст|сбрось контекст/i;
-  const sessionResetRequested = missedMessages.some(
-    (m) => resetTriggerPattern.test(m.content || ''),
+  const resetTriggerPattern =
+    /^\s*\/(reset|новая)\b|новая тема|забудь контекст|сбрось контекст/i;
+  const sessionResetRequested = missedMessages.some((m) =>
+    resetTriggerPattern.test(m.content || ''),
   );
   if (sessionResetRequested && sessions[group.folder]) {
     logger.info(
@@ -374,7 +396,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
     enrichedMessages = await enrichMessages(missedMessages, group.folder);
   } catch (err) {
     logger.warn(
-      { err: err instanceof Error ? err.message : String(err), group: group.folder },
+      {
+        err: err instanceof Error ? err.message : String(err),
+        group: group.folder,
+      },
       'URL enricher failed, using raw messages',
     );
   }
@@ -448,8 +473,7 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
         try {
           await router.route({
             chatJid,
-            text:
-              'Anthropic API залимичен на opus и sonnet. Жду пока лимит сбросится (обычно 30-60 мин), потом отвечу автоматом.',
+            text: 'Anthropic API залимичен на opus и sonnet. Жду пока лимит сбросится (обычно 30-60 мин), потом отвечу автоматом.',
             triggerType: 'agent-response',
             groupFolder: group.folder,
           });
@@ -650,7 +674,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
               outputSentToUser = true;
             }
           } catch (err) {
-            logger.warn({ err, group: group.name }, 'Failed to send streaming draft');
+            logger.warn(
+              { err, group: group.name },
+              'Failed to send streaming draft',
+            );
             streamingDraftStarted = false; // allow retry on next partial
           }
           return;
@@ -728,7 +755,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
                 try {
                   await channel.editMessage(replyJid, streamingMessageId, '·');
                 } catch (err) {
-                  logger.debug({ err }, 'Failed to collapse internal-only draft');
+                  logger.debug(
+                    { err },
+                    'Failed to collapse internal-only draft',
+                  );
                 }
               }
               streamingMessageId = null;
@@ -736,8 +766,12 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
               outputSentToUser = true;
             } else {
               const EDIT_LIMIT = 4000;
-              const head = cleaned.length > EDIT_LIMIT ? cleaned.slice(0, EDIT_LIMIT) : cleaned;
-              const tail = cleaned.length > EDIT_LIMIT ? cleaned.slice(EDIT_LIMIT) : '';
+              const head =
+                cleaned.length > EDIT_LIMIT
+                  ? cleaned.slice(0, EDIT_LIMIT)
+                  : cleaned;
+              const tail =
+                cleaned.length > EDIT_LIMIT ? cleaned.slice(EDIT_LIMIT) : '';
               const editFn = channel.editMessage.bind(channel);
               const msgId = streamingMessageId;
               scheduleEdit(streamKey, head, async (text) => {
@@ -838,7 +872,8 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
   const toolsCount = agentResult.distinctToolsUsed ?? 0;
   const REFLECTION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
   const lastReflectionAt = lastReflectionTime[agentGroup.folder] ?? 0;
-  const reflectionCooledDown = Date.now() - lastReflectionAt >= REFLECTION_COOLDOWN_MS;
+  const reflectionCooledDown =
+    Date.now() - lastReflectionAt >= REFLECTION_COOLDOWN_MS;
   if (
     agentResult.status === 'success' &&
     !hadError &&
@@ -872,15 +907,27 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
         created_at: new Date().toISOString(),
       });
       logger.info(
-        { group: agentGroup.folder, turns: turnsCount, tools: toolsCount, reflectionId },
+        {
+          group: agentGroup.folder,
+          turns: turnsCount,
+          tools: toolsCount,
+          reflectionId,
+        },
         'Reflection task queued',
       );
     } catch (err) {
-      logger.warn({ err, group: agentGroup.folder }, 'Failed to queue reflection task');
+      logger.warn(
+        { err, group: agentGroup.folder },
+        'Failed to queue reflection task',
+      );
     }
   } else if (!reflectionCooledDown && turnsCount >= 10 && toolsCount > 3) {
     logger.debug(
-      { group: agentGroup.folder, cooldownRemainingMs: REFLECTION_COOLDOWN_MS - (Date.now() - lastReflectionAt) },
+      {
+        group: agentGroup.folder,
+        cooldownRemainingMs:
+          REFLECTION_COOLDOWN_MS - (Date.now() - lastReflectionAt),
+      },
       'Reflection skipped: cooldown active',
     );
   }
@@ -898,10 +945,15 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
     agentResult.contextOverflow &&
     (continuationCount[agentGroup.folder] ?? 0) < MAX_AUTO_CONTINUATIONS
   ) {
-    continuationCount[agentGroup.folder] = (continuationCount[agentGroup.folder] ?? 0) + 1;
+    continuationCount[agentGroup.folder] =
+      (continuationCount[agentGroup.folder] ?? 0) + 1;
     const contNum = continuationCount[agentGroup.folder];
     logger.info(
-      { group: agentGroup.folder, continuation: contNum, maxContinuations: MAX_AUTO_CONTINUATIONS },
+      {
+        group: agentGroup.folder,
+        continuation: contNum,
+        maxContinuations: MAX_AUTO_CONTINUATIONS,
+      },
       'Context overflow detected, queuing auto-continuation',
     );
 
@@ -909,8 +961,16 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
     if (sessions[agentGroup.folder]) {
       delete sessions[agentGroup.folder];
       delete sessionLastActivity[agentGroup.folder];
-      try { deleteSession(agentGroup.folder); } catch (err) {
-        logger.debug({ err: err instanceof Error ? err.message : String(err), group: agentGroup.folder }, 'Failed to delete session during continuation cleanup');
+      try {
+        deleteSession(agentGroup.folder);
+      } catch (err) {
+        logger.debug(
+          {
+            err: err instanceof Error ? err.message : String(err),
+            group: agentGroup.folder,
+          },
+          'Failed to delete session during continuation cleanup',
+        );
       }
     }
 
@@ -937,7 +997,7 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
         chat_jid: replyJid,
         prompt: contPrompt,
         schedule_type: 'once',
-        schedule_value: new Date(Date.now() + 500).toISOString(),  // 0.5s delay instead of 5s
+        schedule_value: new Date(Date.now() + 500).toISOString(), // 0.5s delay instead of 5s
         context_mode: 'group',
         next_run: new Date(Date.now() + 500).toISOString(),
         status: 'active',
@@ -949,7 +1009,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
       clearInProgress();
       saveState();
     } catch (err) {
-      logger.warn({ err, group: agentGroup.folder }, 'Failed to queue continuation task');
+      logger.warn(
+        { err, group: agentGroup.folder },
+        'Failed to queue continuation task',
+      );
       // Don't clear in-progress - let crash recovery handle it
     }
     return true;
@@ -977,7 +1040,13 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
       try {
         deleteSession(group.folder);
       } catch (err) {
-        logger.debug({ err: err instanceof Error ? err.message : String(err), group: group.folder }, 'Failed to delete session after error');
+        logger.debug(
+          {
+            err: err instanceof Error ? err.message : String(err),
+            group: group.folder,
+          },
+          'Failed to delete session after error',
+        );
       }
     }
     // If we already sent REAL output (IPC/streaming) before the final result,
@@ -993,8 +1062,7 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
       try {
         await router.route({
           chatJid: replyJid,
-          text:
-            'Что-то поломалось после моего предыдущего ответа. Если ты писал что-то ещё — переотправь, я пропустила.',
+          text: 'Что-то поломалось после моего предыдущего ответа. Если ты писал что-то ещё — переотправь, я пропустила.',
           triggerType: 'agent-response',
           groupFolder: group.folder,
         });
@@ -1025,8 +1093,7 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
       try {
         await router.route({
           chatJid: replyJid,
-          text:
-            'Что-то поломалось на моей стороне, две попытки подряд. Если срочно — попробуй переформулировать или скинь содержимое напрямую. Я записала incident, починю.',
+          text: 'Что-то поломалось на моей стороне, две попытки подряд. Если срочно — попробуй переформулировать или скинь содержимое напрямую. Я записала incident, починю.',
           triggerType: 'agent-response',
           groupFolder: group.folder,
         });
@@ -1037,12 +1104,17 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
         );
       }
       try {
-        const incidentsDir = path.join(GROUPS_DIR, agentGroup.folder, 'incidents');
+        const incidentsDir = path.join(
+          GROUPS_DIR,
+          agentGroup.folder,
+          'incidents',
+        );
         fs.mkdirSync(incidentsDir, { recursive: true });
         const id = `auto-${new Date().toISOString().replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
         const file = path.join(incidentsDir, `${id}.md`);
         const errSnippet =
-          (agentResult as { error?: string }).error?.slice(0, 1000) || 'no error string';
+          (agentResult as { error?: string }).error?.slice(0, 1000) ||
+          'no error string';
         const promptSnippet = prompt.slice(0, 2000);
         const body = [
           `# Auto-incident ${id}`,
@@ -1070,7 +1142,10 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
           ``,
         ].join('\n');
         await fs.promises.writeFile(file, body);
-        logger.info({ file, group: agentGroup.folder }, 'Auto-incident written');
+        logger.info(
+          { file, group: agentGroup.folder },
+          'Auto-incident written',
+        );
       } catch (incErr) {
         logger.warn(
           { err: incErr, group: agentGroup.folder },
@@ -1102,14 +1177,21 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
   // past them would silently drop them. Drain run will pick them up from cursor.
   if (!group.agentConfig?.sequentialMessages) {
     try {
-      const postRunPending = getMessagesSince(chatJid, lastAgentTimestamp[chatJid] || '', ASSISTANT_NAME);
+      const postRunPending = getMessagesSince(
+        chatJid,
+        lastAgentTimestamp[chatJid] || '',
+        ASSISTANT_NAME,
+      );
       if (postRunPending.length > 0) {
         const agentEndTime = new Date().toISOString();
         // Only advance past messages that arrived BEFORE the run ended.
         // Messages arriving right now should wait for the next run.
-        const msgsDuringRun = postRunPending.filter(m => m.timestamp <= agentEndTime);
+        const msgsDuringRun = postRunPending.filter(
+          (m) => m.timestamp <= agentEndTime,
+        );
         if (msgsDuringRun.length > 0) {
-          lastAgentTimestamp[chatJid] = msgsDuringRun[msgsDuringRun.length - 1].timestamp;
+          lastAgentTimestamp[chatJid] =
+            msgsDuringRun[msgsDuringRun.length - 1].timestamp;
           saveState();
           logger.info(
             { group: group.name, advancedPast: msgsDuringRun.length },
@@ -1132,10 +1214,12 @@ async function processGroupMessages(chatJid: string, router: MessageRouter): Pro
     // Only brag if downtime was meaningful (>3 min) — short blips don't
     // warrant a separate message and feel needy.
     if (downtimeMin >= 3) {
-      const base = recoveryBragMessages[Math.floor(Math.random() * recoveryBragMessages.length)];
-      const text = downtimeMin > 10
-        ? `${base} (был дауном ${downtimeMin} мин)`
-        : base;
+      const base =
+        recoveryBragMessages[
+          Math.floor(Math.random() * recoveryBragMessages.length)
+        ];
+      const text =
+        downtimeMin > 10 ? `${base} (был дауном ${downtimeMin} мин)` : base;
       try {
         await router.route({
           chatJid,
@@ -1239,7 +1323,8 @@ async function runAgent(
         }
         if (output.usage) lastUsage = output.usage;
         if (output.turns !== undefined) lastTurns = output.turns;
-        if (output.distinctToolsUsed !== undefined) lastDistinctTools = output.distinctToolsUsed;
+        if (output.distinctToolsUsed !== undefined)
+          lastDistinctTools = output.distinctToolsUsed;
         if (output.channelTurns) lastChannelTurns = output.channelTurns;
         if (output.result) lastResultText = output.result;
         await onOutput(output);
@@ -1278,30 +1363,44 @@ async function runAgent(
     // Auth-error auto-recovery: if the run failed with a 401 in its error
     // text, force-refresh the OAuth token from keychain and retry once.
     // Sandbox mode only (container uses credential proxy, not OAuth).
-    const authErrorPattern = /(API Error: 401|authentication_error|Invalid authentication credentials)/i;
+    const authErrorPattern =
+      /(API Error: 401|authentication_error|Invalid authentication credentials)/i;
     if (
       runtime === 'sandbox' &&
       output.status === 'error' &&
       typeof output.error === 'string' &&
       authErrorPattern.test(output.error)
     ) {
-      logger.warn({ group: group.name }, 'Auth 401 detected, forcing keychain refresh and retrying once');
+      logger.warn(
+        { group: group.name },
+        'Auth 401 detected, forcing keychain refresh and retrying once',
+      );
       try {
         // `claude -p ok` runs OUTSIDE sandbox, forces keychain rotation
         // Use async execFile to avoid blocking the event loop
         const { execFile } = await import('child_process');
         await new Promise<void>((resolve, reject) => {
-          execFile('claude', ['-p', 'ok', '--output-format', 'text', '--max-turns', '1'], {
-            timeout: 25000,
-          }, (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+          execFile(
+            'claude',
+            ['-p', 'ok', '--output-format', 'text', '--max-turns', '1'],
+            {
+              timeout: 25000,
+            },
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            },
+          );
         });
         output = await runAgent();
       } catch (refreshErr) {
         logger.error(
-          { err: refreshErr instanceof Error ? refreshErr.message : String(refreshErr) },
+          {
+            err:
+              refreshErr instanceof Error
+                ? refreshErr.message
+                : String(refreshErr),
+          },
           'Token refresh failed during auth-retry',
         );
       }
@@ -1333,17 +1432,35 @@ async function runAgent(
       // runs that fail for non-overflow reasons (auth, network, bugs).
       // The runner itself now reports contextOverflow natively for most
       // cases; this inference is only for watchdog kills.
-      const inferredOverflow = output.contextOverflow || ((turns ?? 0) >= 30);
+      const inferredOverflow = output.contextOverflow || (turns ?? 0) >= 30;
       if (inferredOverflow && !output.contextOverflow) {
         logger.info(
           { group: group.name, turns, durationMs },
           'Inferring contextOverflow from high turn count on error exit',
         );
       }
-      return { status: 'error', usage, durationMs, turns, distinctToolsUsed, result, contextOverflow: inferredOverflow || undefined, channelTurns };
+      return {
+        status: 'error',
+        usage,
+        durationMs,
+        turns,
+        distinctToolsUsed,
+        result,
+        contextOverflow: inferredOverflow || undefined,
+        channelTurns,
+      };
     }
 
-    return { status: 'success', usage, durationMs, turns, distinctToolsUsed, result, contextOverflow: output.contextOverflow, channelTurns };
+    return {
+      status: 'success',
+      usage,
+      durationMs,
+      turns,
+      distinctToolsUsed,
+      result,
+      contextOverflow: output.contextOverflow,
+      channelTurns,
+    };
   } catch (err) {
     const durationMs = Date.now() - startTime;
     logger.error({ group: group.name, err }, 'Agent error');
@@ -1470,15 +1587,18 @@ async function startMessageLoop(): Promise<void> {
           //    threshold (split detection — wait for continuation)
           //  - 4000ms when voice/photo present (Whisper latency padding)
           const hasMedia = messagesToSend.some((m) =>
-            /\[Voice:|\[Audio:|\[Photo|\[Document:|\[Video|\[PDF:/.test(m.content),
+            /\[Voice:|\[Audio:|\[Photo|\[Document:|\[Video|\[PDF:/.test(
+              m.content,
+            ),
           );
-          const lastMsgLen = messagesToSend[messagesToSend.length - 1].content.length;
+          const lastMsgLen =
+            messagesToSend[messagesToSend.length - 1].content.length;
           const isSplitCandidate = lastMsgLen >= 3900;
           const defaultDebounce = hasMedia
             ? 4000
             : isSplitCandidate
-            ? 2000
-            : 600;
+              ? 2000
+              : 600;
           const debounceMs = group.agentConfig?.debounceMs ?? defaultDebounce;
           const newestTs = messagesToSend[messagesToSend.length - 1].timestamp;
           const ageMs = Date.now() - new Date(newestTs).getTime();
@@ -1497,7 +1617,10 @@ async function startMessageLoop(): Promise<void> {
               try {
                 queue.enqueueMessageCheck(chatJid);
               } catch (err) {
-                logger.warn({ chatJid, err }, 'Failed to enqueue debounce re-check');
+                logger.warn(
+                  { chatJid, err },
+                  'Failed to enqueue debounce re-check',
+                );
               }
             }, delayMs).unref();
             continue;
@@ -1581,14 +1704,10 @@ export async function main(): Promise<void> {
   const allGroups = Object.values(getAllRegisteredGroups());
   const needsContainers =
     DEFAULT_RUNTIME === 'container' ||
-    allGroups.some(
-      (g) => (g.runtime || DEFAULT_RUNTIME) === 'container',
-    );
+    allGroups.some((g) => (g.runtime || DEFAULT_RUNTIME) === 'container');
   const needsSandbox =
     DEFAULT_RUNTIME === 'sandbox' ||
-    allGroups.some(
-      (g) => (g.runtime || DEFAULT_RUNTIME) === 'sandbox',
-    );
+    allGroups.some((g) => (g.runtime || DEFAULT_RUNTIME) === 'sandbox');
 
   if (needsContainers) {
     ensureContainerSystemRunning();
@@ -1852,7 +1971,9 @@ export async function main(): Promise<void> {
   const { startSelfHealWatcher } = await import('./selfheal.js');
   startSelfHealWatcher(channels);
 
-  queue.setProcessMessagesFn((chatJid) => processGroupMessages(chatJid, router));
+  queue.setProcessMessagesFn((chatJid) =>
+    processGroupMessages(chatJid, router),
+  );
   queue.setCheckPendingFn((chatJid) => {
     try {
       const cursor = lastAgentTimestamp[chatJid] || '';
@@ -1868,4 +1989,3 @@ export async function main(): Promise<void> {
     process.exit(1);
   });
 }
-

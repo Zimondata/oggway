@@ -33,17 +33,17 @@ export interface ContainerConfig {
 }
 
 export interface AgentConfig {
-  model?: string;              // 'sonnet' | 'opus' | 'haiku' | full model ID
+  model?: string; // 'sonnet' | 'opus' | 'haiku' | full model ID
   effort?: 'low' | 'medium' | 'high'; // Model reasoning effort (v2.1.78+)
-  systemPrompt?: string;       // Appended to agent's system context
-  allowedTools?: string[];     // Tool allowlist override (empty = use defaults)
-  disallowedTools?: string[];  // Tool blacklist (v2.1.78+ — applied on top of allowlist)
-  maxTurns?: number;           // Max conversation turns
-  allowedDomains?: string[];   // Extra network domains the sandbox agent can access (merged with base Anthropic + localhost)
+  systemPrompt?: string; // Appended to agent's system context
+  allowedTools?: string[]; // Tool allowlist override (empty = use defaults)
+  disallowedTools?: string[]; // Tool blacklist (v2.1.78+ — applied on top of allowlist)
+  maxTurns?: number; // Max conversation turns
+  allowedDomains?: string[]; // Extra network domains the sandbox agent can access (merged with base Anthropic + localhost)
   allowedWritePaths?: string[]; // Extra host filesystem paths the sandbox agent can write to (merged into filesystem.allowWrite). Use for tasks that legitimately touch paths outside the workspace, e.g. backup dirs.
-  disableStreaming?: boolean;  // If true, only send the final message — skip in-flight streaming draft + edits.
+  disableStreaming?: boolean; // If true, only send the final message — skip in-flight streaming draft + edits.
   sequentialMessages?: boolean; // If true, never inject new messages into a running sandbox; queue them for the next run instead. Prevents voice/text getting mixed/dropped when sent in quick succession.
-  debounceMs?: number;         // Quiet-period debounce window in ms. Default: 2000 (text) / 4000 (when voice/photo present). Override to tune brain-dump batching: bot waits N ms of quiet before batching N rapid messages into ONE agent run.
+  debounceMs?: number; // Quiet-period debounce window in ms. Default: 2000 (text) / 4000 (when voice/photo present). Override to tune brain-dump batching: bot waits N ms of quiet before batching N rapid messages into ONE agent run.
 }
 
 export interface RegisteredGroup {
@@ -126,7 +126,11 @@ export interface Channel {
   /** Optional: sync group/chat names from the platform. */
   syncGroups?(force: boolean): Promise<void>;
   /** Optional: edit a previously-sent message. Required when supportsEdit=true. */
-  editMessage?(jid: string, messageId: string | number, text: string): Promise<void>;
+  editMessage?(
+    jid: string,
+    messageId: string | number,
+    text: string,
+  ): Promise<void>;
   /** Optional: send a file (document) — markdown, PDF, image, etc. */
   sendDocument?(jid: string, filePath: string, caption?: string): Promise<void>;
   /** Optional: capability flags. Default = no special capabilities. */
